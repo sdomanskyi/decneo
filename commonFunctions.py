@@ -3,6 +3,38 @@ from genes import *
 
 cleanListString = lambda c: str(list(c)).replace(' ', '').replace("'", '').replace(']', '').replace('[', '').replace(',', ', ')
 
+def movingAverageCentered(a, halfWindowSize):
+
+    '''
+    An intuitive way:
+    b = np.append(np.append(a[-n:], a), a[:n])
+    a_smoothed = np.array([np.sum(b[i-n:i+n+1]) / (2.*n + 1.) for i in range(n, len(b)-n)])
+
+    Faster way is to use np.cumsum(), especially for long vectors
+
+    if False:
+        np.random.seed(0)
+        a = np.sin(np.random.rand(100)*2.*180./np.pi) + 1.
+        a[a > 0.5] = 0
+        print(np.sum(a))
+        plt.plot(np.arange(len(a)), a, 'o')
+
+        for n in [1,2,5,10]:
+            a_avg = movingAverageCenteredLooped(a, n)
+            print(np.sum(a_avg))
+            plt.plot(np.arange(len(a)), a_avg)
+
+        plt.show()
+    '''
+
+    n = halfWindowSize
+
+    b = np.append(np.append(a[-n:], a), a[:n])
+    s = np.cumsum(b) / (2.*n + 1.)
+    s[2*n+1:] -= s[:-2*n-1]
+
+    return s[2*n:]
+
 def movingAverageCenteredLooped(a, halfWindowSize):
 
     '''
@@ -89,70 +121,86 @@ def getGenesOfPeak(se, heightCutoff = 0.5):
 
     return genes
 
-def get_df_distance(df, metric = 'correlation', genes = [], analyzeBy = 'batch', minSize = 10, groupBatches = True, pname = None, cutoff = 0.05):
+def getDistanceOfBatch(args):
 
-    print('df_expr', '%1.1fMb'%(sys.getsizeof(df) / 1024**2), flush=True)
+    batch, df_sample, metric, genes, minSize, cutoff = args
 
-    genes = np.unique(genes)
-
-    print('\tMetric:', metric, '\tAnalyzeBy:', analyzeBy, '\tminSize:', minSize)
-    list_df_corr = []
-    batches = []
-    index = set()
-
-    temp_batches = np.unique(df.columns.get_level_values(analyzeBy).values)[:]
-    print('Number of batches:', len(temp_batches), flush=True)
-
-    for i, batch in enumerate(temp_batches):
-        df_sample = df.xs(key=batch, level=analyzeBy, axis=1, drop_level=False)
+    try:
         df_sample = df_sample.loc[((df_sample > 0).sum(axis=1) / df_sample.shape[1]) >= cutoff]
-        df_sample = df_sample.loc[df_sample.sum(axis=1) > 0.]
-
+    
         if df_sample.shape[1] < minSize:
 
-            continue
+            return pd.DataFrame(), '', set()
 
-        print('\t', '%s-%s' % (i, batch), df_sample.shape, end=' ')
+        print('\t', batch, df_sample.shape, end=' ')
 
         temp_genes = df_sample.index.intersection(genes)
         print(len(temp_genes), end=' ', flush=True)
 
         measure = cdist(df_sample.loc[temp_genes].values, df_sample.values, metric=metric).T
 
-        se_batch_corr = pd.DataFrame(measure, index=df_sample.index, 
-                                     columns=temp_genes).stack().reorder_levels([1, 0]).sort_index()
-
+        se_batch_corr = pd.DataFrame(measure, index=df_sample.index, columns=temp_genes).stack().reorder_levels([1, 0]).sort_index()
         se_batch_corr = pd.concat([se_batch_corr], keys=[batch], axis=1, sort=False)
         se_batch_corr = pd.concat([se_batch_corr], keys=[metric], axis=1, sort=False)
-        list_df_corr.append(se_batch_corr.copy())
-        batches.append(batch)
-        index = index.union(se_batch_corr.index.values)
+
+    except Exception as exception:
+        print('\nERROR in correlation calculation:', exception, '\n')
+
+        return pd.DataFrame(), '', set()
+
+    return se_batch_corr.copy(), batch, pd.Series(index=se_batch_corr.index)
+
+def reindexSeries(args):
+
+    se, batch, index = args
+
+    print('\t', batch, end=' ', flush=True)
+    se = se.replace(0., np.nan).reindex(index)
+
+    return se, batch
+
+def get_df_distance(df, metric = 'correlation', genes = [], analyzeBy = 'batch', minSize = 10, groupBatches = True, pname = None, cutoff = 0.05, nCPUs = 4):
+
+    print('\tMetric:', metric, '\tAnalyzeBy:', analyzeBy, '\tminSize:', minSize)
+    print('df_expr', '%1.1fMb'%(sys.getsizeof(df) / 1024**2), flush=True)
+
+    genes = np.unique(genes)
+    print('\tReceived %s genes for analysis' % len(genes))
+
+    temp_batches = np.unique(df.columns.get_level_values(analyzeBy).values)
+    print('Staring multiprocessing for %s batches' % len(temp_batches), flush=True)
+    pool = multiprocessing.Pool(processes=nCPUs)
+    results = pool.map(getDistanceOfBatch, [(batch, df.xs(key=batch, level=analyzeBy, axis=1, drop_level=False), metric, genes, minSize, cutoff) for batch in temp_batches])
+    pool.close()
+    pool.join()
+    print()
 
     del df
+
+    index = pd.concat([item[2] for item in results if item[1] != ''], axis=0).index.drop_duplicates()
+    print('\tIndex pairs:', len(index), '\tSelected genes:', len(index.levels[0]), '\tAll genes:', len(index.levels[1]))
+
+    print('Starting multiprocessing for reindexing', flush=True)
+    pool = multiprocessing.Pool(processes=nCPUs)
+    results = pool.map(reindexSeries, [(item[0], item[1], index) for item in results if item[1] != ''])
+    pool.close()
+    pool.join()
     print()
 
-    print('Making index', flush=True)
-    index = pd.MultiIndex.from_tuples(list(index))
-    print('Sorting index', flush=True)
-    index = index.sort_values()
-    print('\Index pairs:', len(index), '\tSelected genes:', len(np.unique(index.get_level_values(0))), '\tAll genes:', len(np.unique(index.get_level_values(1))))
-
-    df_batches = pd.DataFrame(index=index, columns=batches, dtype=float)
-
-    print('Re-indexing each sample', flush=True)
-    for ibatch, batch in enumerate(batches):
-        print('\t', ibatch, end=' ', flush=True)
-        df_temp = list_df_corr[ibatch].replace(0., np.nan)
-        df_batches.loc[df_temp.index, batch] = df_temp.values
-        list_df_corr[ibatch] = None
-
+    print('Merging reindexed batches', flush=True)
+    df_batches = pd.DataFrame(index=index, dtype=float)
+    for se, batch in results:
+        print('\t', batch, end=' ', flush=True)
+        df_batches[batch] = se
     print()
+
+    del results
+    
     print(df_batches, flush=True)
-
     print('df_batches', '%1.1fMb'%(sys.getsizeof(df_batches) / 1024**2), flush=True)
 
     if groupBatches:
-        df_batches = pd.Series(data=np.nanmedian(df_batches.values, axis=1), index=df_batches.index).unstack(0)
+        df_batches = pd.Series(data=np.nanmedian(df_batches.values, axis=1, overwrite_input=True), index=df_batches.index).unstack(0)
 
         for gene in df_batches.columns:
             try:
@@ -183,7 +231,7 @@ def metric_euclidean_missing(u, v):
                     
     return np.sqrt(((u[wh] - v[wh])**2).sum())
 
-def nx_binom(nx_obj, enriched_genes, target_genes = False, background_genes = False):
+def binomialEnrichmentProbability(nx_obj, enriched_genes, target_genes = False, background_genes = False):
 
     '''Takes in a network x object and list of enriched genes and calculates the binomial
     enrichment based on the number of enriched interaction there are.
@@ -330,3 +378,118 @@ def testNumbersOfClusters(data, text = '', n_min = 2, n_max = 20, k = 10):
     print()
 
     return
+
+class Metrics:
+
+    @classmethod
+    def pearson_cor_coef(cls, X, Y):
+
+        return np.corrcoef(X, Y)[0, 1]
+
+    @classmethod
+    def spearman_cor_coef(cls, X, Y):
+
+        return np.corrcoef(X.argsort().argsort(), Y.argsort().argsort())[0, 1]
+
+def KeyInStore(key, file):
+
+    try:
+        with pd.HDFStore(file, mode='r') as hdf5file:
+            if "/" + key.strip("/") in hdf5file.keys():
+                return True
+            else:
+                return False
+
+    except Exception as exception:
+        print(exception)
+
+    return
+
+def KeysOfStore(file):
+
+    try:
+        with pd.HDFStore(file, mode='r') as hdf5file:
+            return list(hdf5file.keys())
+
+    except Exception as exception:
+        print(exception)
+
+    return
+
+def downloadFile(url, saveDir, saveName = None):
+
+    if not os.path.exists(saveDir): 
+        os.makedirs(saveDir)
+    
+    if saveName is None:
+        saveName = url.strip('"').split('/')[-1:][0]
+
+    path = os.path.join(saveDir, saveName)
+
+    if os.path.isfile(path):
+        print('File has been downloaded already')
+    else:
+        print('Downloading file:', url.strip('"'), end='\t', flush=True)
+
+        try:
+            urllib.request.urlretrieve(url.strip('"'), path)
+            print('Done', flush=True)
+
+        except Exception as exception:
+            print(exception)
+
+    return
+
+def readRDataFile(fullPath, takeGeneSymbolOnly = True, saveToHDF = True, returnSizeOnly = False):
+
+    if (not returnSizeOnly) and os.path.isfile(fullPath):
+        print('File already exists:', fullPath)
+
+        df = pd.read_hdf(fullPath, key='df')
+
+        return df
+
+    from rpy2.robjects import r as R
+
+    R['load'](fullPath[:-len('.h5')])
+    ls = np.array(R['ls']())
+
+    rSparseMatrix = R[ls[0]]
+
+    print('Matrix size:', end='\t', flush=True)
+    size = R('dim')(rSparseMatrix)
+    print(size)
+
+    if returnSizeOnly:
+
+        return size[0], size[1]
+
+    columns = pd.Index(np.array(R['colnames'](rSparseMatrix))).astype(str)
+    index = pd.Index(np.array(R['rownames'](rSparseMatrix))).astype(str)
+
+    if takeGeneSymbolOnly:
+        index = index.str.split('_ENS', expand=True).get_level_values(0)
+    
+    R['writeMM'](obj=rSparseMatrix, file='%s.mtx' % (fullPath))
+
+    df = pd.DataFrame(index=index, columns=columns, data=scipy.io.mmread('%s.mtx' % (fullPath)).toarray().astype(int))
+
+    os.remove('%s.mtx' % (fullPath))
+
+    df = df.loc[~df.index.duplicated(keep='first')]
+    df = df.T.loc[~df.T.index.duplicated(keep='first')].T
+
+    if saveToHDF:
+        df.to_hdf(fullPath, key='df', mode='a', complevel=4, complib='zlib')
+
+        return df
+
+    return df
+       
+def reduce(v, size = 100):
+
+    bins =  np.linspace(np.min(v), np.max(v), num=size)
+
+    return bins[np.digitize(v, bins) - 1]
+
+

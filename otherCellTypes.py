@@ -1,9 +1,12 @@
-from common import *
+from commonFunctions import *
 from analysisPipeline import analyze, compareTwoCases
 
 workingDir = 'otherCellTypes/'
+bigDataFile = processedDataDir + 'selectedCellsInPanglaoDB_processed.h5'
 
 if __name__ == '__main__':
+
+    nCPUs = 4 if platform.system() == "Windows" else 6
 
     # Count SRA/SRS to find cell types with plenty (>20) SRS per both, human and mouse
     # Add subtypes of the selected cell types too, name conversion is in "dictCelltypes"
@@ -63,106 +66,117 @@ if __name__ == '__main__':
             df = df.groupby(['species', 'celltype']).count().unstack('celltype')
             print(df)
 
-    bigDataFile = processedDataDir + 'selectedCellsInPanglaoDB_processed.h5'
-
     # Prepare expression and DEG ranking.This step took 10 hrs
     if False:
-        df_cells_id = pd.read_hdf('data/selectedCellsInPanglaoDB.h5', key='df')
-        for species in ['Homo sapiens', 'Mus musculus']:
-            df_cells_id_species = df_cells_id.xs(species, level='species')
-            files = np.unique(df_cells_id_species.index.get_level_values('file'))
-            print('Species:', species, '\tFiles:', len(files), '\tCells:', len(df_cells_id_species), flush=True)
-            #np.savetxt('file_cell_id_%s.txt' % species, files, fmt='%s')
+        def parseFiles(filesP):
 
-            for file in files[:]:
-                try:
-                    print('\nProcessing file:', file, flush=True)
+            df_cells_id = pd.read_hdf('data/selectedCellsInPanglaoDB.h5', key='df')
+            for species in ['Homo sapiens', 'Mus musculus'][:]:
+                df_cells_id_species = df_cells_id.xs(species, level='species')
+                files = np.unique(df_cells_id_species.index.get_level_values('file'))
+                print('Species:', species, '\tFiles:', len(files), '\tCells:', len(df_cells_id_species), flush=True)
 
-                    # Load expression data
-                    df_expr = pd.read_hdf(os.path.join(RDataDirName, file), key='df')
+                for ifile, file in enumerate(files):
+                    if file not in filesP:
+                        continue
 
-                    # Make sure all cell identifiers are found in expression file
-                    df_temp_cells = df_cells_id_species.xs(file, level='file')
-                    df_temp_cells = df_temp_cells.loc[np.isin(df_temp_cells.index.values, df_expr.columns)]
+                    saveFileNamePath = bigDataFile[:-3] + '/%s.h5' % file # bigDataFile
 
-                    # Use selected cells
-                    w = df_expr.columns.difference(df_temp_cells.index)
-                    df_expr = df_expr[pd.Index(np.random.choice(w, min(1000, len(w)), replace=False)).append(df_temp_cells.index)]
+                    if os.path.isfile(saveFileNamePath +'.txt'):
+                        continue
 
-                    # Convert any mouse genes to human
-                    df_expr.index = pd.Series(df_expr.index.values).replace(Mouse_to_Human_HUGO_conversion).values
+                    try:
+                        print('\nProcessing file:', ifile, file, 'of', len(files), species, flush=True)
 
-                    # Drop any duplicates
-                    df_expr = df_expr.loc[~df_expr.index.duplicated(keep='first')]
-                    df_expr = df_expr.T.loc[~df_expr.T.index.duplicated(keep='first')].T
-                    df_expr = df_expr.astype(float)
+                        # Load expression data
+                        df_expr = pd.read_hdf(os.path.join(RDataDirName, file), key='df')
 
-                    # Scale and log-transform
-                    df_expr /= df_expr.sum(axis=0) * 0.0001
-                    df_expr = np.log2(df_expr.replace(0., np.min(df_expr.values[df_expr.values > 0.])))
-                    df_expr -= np.min(df_expr.values)
+                        # Make sure all cell identifiers are found in expression file
+                        df_temp_cells = df_cells_id_species.xs(file, level='file')
+                        df_temp_cells = df_temp_cells.loc[np.isin(df_temp_cells.index.values, df_expr.columns)]
 
-                    # Remove nearly-constant and constant genes
-                    df_expr = df_expr[np.std(df_expr, axis=1) / np.mean(np.std(df_expr.values)) > 0.01]
+                        # Use selected cells
+                        w = df_expr.columns.difference(df_temp_cells.index)
+                        df_expr = df_expr[pd.Index(np.random.choice(w, min(1000, len(w)), replace=False)).append(df_temp_cells.index)]
 
-                    for celltype in np.unique(df_temp_cells.values):
-                        celltypeCells = df_temp_cells[df_temp_cells == celltype].index
-                        df_celltype = df_expr[celltypeCells]
+                        # Convert any mouse genes to human
+                        df_expr.index = pd.Series(df_expr.index.values).replace(Mouse_to_Human_HUGO_conversion).values
+
+                        # Drop any duplicates
+                        df_expr = df_expr.loc[~df_expr.index.duplicated(keep='first')]
+                        df_expr = df_expr.T.loc[~df_expr.T.index.duplicated(keep='first')].T
+                        df_expr = df_expr.astype(float).fillna(0.)
+
+                        # Drop zero cells
+                        df_expr = df_expr[df_expr.columns[df_expr.sum(axis=0) > 0.]]
+
+                        # Scale and log-transform
+                        df_expr /= df_expr.sum(axis=0) * 0.0001
+                        df_expr = np.log2(df_expr.replace(0., np.min(df_expr.values[df_expr.values > 0.])))
+                        df_expr -= np.min(df_expr.values)
+
+                        # Remove nearly-constant and constant genes
+                        df_expr = df_expr[np.std(df_expr, axis=1) / np.mean(np.std(df_expr.values)) > 0.01]
+
+                        for celltype in np.unique(df_temp_cells.values):
+                            celltypeCells = df_temp_cells[df_temp_cells == celltype].index
+                            df_celltype = df_expr[celltypeCells]
                 
-                        # Rank and save differentially expressed genes
-                        df_ttest = pd.DataFrame(index=df_celltype.index, columns=['statistic', 'pvalue'])
-                        ttest = scipy.stats.ttest_ind(df_celltype.values, df_expr[df_expr.columns.difference(celltypeCells)].values, axis=1)
-                        df_ttest['statistic'] = ttest[0]
-                        df_ttest['pvalue'] = ttest[1]
-                        df_ttest = df_ttest.sort_values('statistic', ascending=False).dropna()
-                        df_ttest.to_hdf(saveFile, key='ttest/%s/%s/%s/' % (species, celltype, file), mode='a', complevel=4, complib='zlib')
+                            # Rank and save differentially expressed genes
+                            df_ttest = pd.DataFrame(index=df_celltype.index, columns=['statistic', 'pvalue'])
+                            ttest = scipy.stats.ttest_ind(df_celltype.values, df_expr[df_expr.columns.difference(celltypeCells)].values, axis=1)
+                            df_ttest['statistic'] = ttest[0]
+                            df_ttest['pvalue'] = ttest[1]
+                            df_ttest = df_ttest.sort_values('statistic', ascending=False).dropna()
+                            df_ttest.to_hdf(saveFileNamePath, key='ttest/%s/%s/%s/' % (species, celltype, file), mode='a', complevel=4, complib='zlib')
 
-                        # Save expression data
-                        df_celltype = df_celltype[df_celltype.sum(axis=1) > 0]
-                        df_celltype.to_hdf(bigDataFile, key='expr/%s/%s/%s/' % (species, celltype, file), mode='a', complevel=4, complib='zlib')
+                            # Save expression data
+                            df_celltype = df_celltype[df_celltype.sum(axis=1) > 0]
+                            df_celltype.to_hdf(saveFileNamePath, key='expr/%s/%s/%s/' % (species, celltype, file), mode='a', complevel=4, complib='zlib')
 
-                        print('\t', celltype, df_ttest.shape, df_celltype.shape, flush=True)
+                            #print('\t', celltype, df_ttest.shape, df_celltype.shape, flush=True)
 
-                except Exception as exception:
-                    print(exception, flush=True)
+                        np.savetxt(saveFileNamePath +'.txt', ['Checked'], fmt='%s')
+
+                    except Exception as exception:
+                        print('ERROR:', exception, flush=True)
+
+            return
+
+        filesP = np.loadtxt('filesP.txt', dtype=str)
+
+        if True:
+            pool = multiprocessing.Pool(processes=10)
+            pool.map(parseFiles, [filesP[100*i:100*(i+1)] for i in range(10)])
+            pool.close()
+            pool.join()
 
     # Aggregate files
     if False:
-        from io import KeysOfStore
-
-        keys = KeysOfStore(bigDataFile) # ['/ttest/Mus musculus/Endothelial/SRA203368_SRS866906.sparse.RData.h5', ...]
+        keys = []
+        allFiles = [file for file in os.listdir(bigDataFile[:-3]) if file[-3:]=='.h5']
+        for file in allFiles:
+            keys.extend(KeysOfStore(bigDataFile[:-3] + '/%s' % file))
+        
         skeys = np.array([np.array(key.strip('/').split('/')) for key in keys])
-
-        if False:
-            dfc = pd.DataFrame(skeys).set_index([0,1,2]).groupby([0,1,2]).count().unstack(2)
-            dfc.to_excel('checkBigPerCelltype.xlsx')
-            print(dfc)
-
-            dfc = pd.DataFrame(skeys).set_index([0,1,3])
-            dfc[:] = 1
-            dfc.index.names = ['mode', 'species', 'file']
-            dfc = dfc.loc[~dfc.index.duplicated(keep='first')]
-            dfc = dfc.groupby(['mode', 'species']).count() #.unstack(3)
-            dfc.to_excel('checkBigFiles.xlsx')
-            print(dfc)
-
         dfc = pd.DataFrame(skeys).set_index([0,1,2])
         dfc.index.names = ['x', 'species', 'celltype']
         dfc.columns = ['file']
+        dfc = dfc.sort_index()
+        print(dfc)
 
         for x in ['ttest', 'expr'][1:]:
-            dfc_x = dfc.xs(x, level='x')
             for species in ['Homo sapiens', 'Mus musculus']:
-                dfc_x_species = dfc_x.xs(species, level='species')
                 for celltype in uCelltypes:
                     try:
-                        tempFiles = dfc_x_species.xs(celltype).values.flatten().tolist()
+                        tempFiles = dfc.xs(x, level='x').xs(species, level='species').xs(celltype).values.flatten().tolist()
 
                         if x == 'ttest':
                             genes = []
                             batches = []
                             for file in tempFiles:
-                                df_temp = pd.read_hdf(bigDataFile, key='%s/%s/%s/%s/' % (x, species, celltype, file))
+                                saveFileNamePath = bigDataFile[:-3] + '/%s.h5' % file
+                                df_temp = pd.read_hdf(saveFileNamePath, key='%s/%s/%s/%s/' % (x, species, celltype, file))
                                 genes.append(df_temp.loc[df_temp['pvalue'] <= 10**-3]['statistic'].index.values)
                                 batches.append(file.split('.sparse.RData.h5')[0])
 
@@ -185,10 +199,14 @@ if __name__ == '__main__':
                             df_ranks.to_hdf(processedDataDir + 'PanglaoDB_ttest_ranks_per_batch_%s_%s.h5' % (species, celltype), key='df', mode='a', complevel=4, complib='zlib')
 
                         elif x == 'expr':
+                            if os.path.isfile(processedDataDir + 'PanglaoDB_expresion_per_batch_%s_%s.h5' % (species, celltype)):
+                                continue
+
                             dfs = []
                             for file in tempFiles:
                                 batch = file.split('.sparse.RData.h5')[0]
-                                df_temp = pd.read_hdf(bigDataFile, key='%s/%s/%s/%s/' % (x, species, celltype, file))
+                                saveFileNamePath = bigDataFile[:-3] + '/%s.h5' % file
+                                df_temp = pd.read_hdf(saveFileNamePath, key='%s/%s/%s/%s/' % (x, species, celltype, file))
                                 df_temp = pd.concat([df_temp], keys=[batch], axis=1, sort=False)
                                 df_temp.columns.names = ['batch', 'cell']
                                 dfs.append(df_temp)
@@ -196,8 +214,6 @@ if __name__ == '__main__':
                             print('\nMerging expression data:', species, celltype, flush=True)
                             df_expr = pd.concat(dfs, axis=1, sort=False).fillna(0.)
                             
-                            del dfs[:]
-
                             print('Saving expression data:', species, celltype, df_expr.shape, flush=True)
                             df_expr.to_hdf(processedDataDir + 'PanglaoDB_expresion_per_batch_%s_%s.h5' % (species, celltype), key='df', mode='a', complevel=4, complib='zlib')
 
@@ -214,44 +230,61 @@ if __name__ == '__main__':
             elif batchID == 1:
                 uCelltypes = ['B', 'T']
             elif batchID == 2:
-                uCelltypes = ['NK', 'Endothelial']
+                uCelltypes = ['NK', 'Dendritic']
+            elif batchID == 3:
+                uCelltypes = ['Endothelial']
 
             print('batchID:', batchID, bootstrapExperiments, flush=True)
         except:
             pass
 
+        uCelltypes = ['Dendritic']
+        
         for celltype in uCelltypes:
             try:
-                comparisonName = workingDir + '%s/%s/comparison' % (celltype, 'Mus musculus')
+                if celltype in ['Dendritic', 'B', 'T', 'NK']:
+                    coSignallingGenes = pd.read_excel('Co-signalling molecules SD.xlsx', index_col=0, header=0).index.values.tolist()
+                elif celltype in ['Fibroblast']:
+                    coSignallingGenes = pd.read_excel('Co-signalling molecules SD.xlsx', index_col=0, header=0).index.values.tolist()
+                elif celltype in ['Erythroid']:
+                    coSignallingGenes = pd.read_excel('Co-signalling molecules SD.xlsx', index_col=0, header=0).index.values.tolist()
+                elif celltype in ['Endothelial']:
+                    coSignallingGenes = pd.read_excel('Co-signalling molecules SD.xlsx', index_col=0, header=0).index.values.tolist()
 
-                if True:
-                    for species in ['Homo sapiens', 'Mus musculus']:
+                coSignallingGenes = gEC23
+
+                if False:
+                    for species in ['Homo sapiens', 'Mus musculus'][:]:
                         print('Analyzing all cells of %s, %s:' % (species, celltype))
 
                         df_expr = pd.read_hdf(processedDataDir + 'PanglaoDB_expresion_per_batch_%s_%s.h5' % (species, celltype), key='df')
 
-                        analyze(df_expr, receptorsListHugo_2555, gECs, gECi, 'correlation',
+                        analyze(df_expr, receptorsListHugo_2555, coSignallingGenes, [], 'correlation',
                                 suffix='%s_%s' % (species, celltype), saveDir=workingDir + '%s/%s/' % (celltype, species),
                                 toggleCalculateMajorMetric=True, toggleExportFigureData=True, toggleCalculateMeasures=True,
-                                toggleAdjustText=False, noPlot=True, panels=[])
+                                toggleAdjustText=False, noPlot=True, panels=[],
+                                nCPUs=nCPUs)
 
+    
+                if True:
+                    comparisonName = workingDir + '%s/%s/comparison' % (celltype, 'Mus musculus')
                     compareTwoCases(workingDir + '%s/%s/' % (celltype, 'Homo sapiens'), 
                                     workingDir + '%s/%s/' % (celltype, 'Mus musculus'), 
                                     saveName=comparisonName)
-    
-                for species in ['Homo sapiens', 'Mus musculus']:
-                    print('Re-analyzing for of %s, %s:' % (species, celltype))
 
-                    additionalData = externalPanelsData.copy()
-                    additionalData.update({
-                        'diffExpressedGenes': pd.read_hdf(processedDataDir + 'PanglaoDB_ttest_ranks_per_batch_%s_%s.h5' % (species, celltype), key='df'),
-                        'conservedGenes': pd.read_excel(comparisonName + '.xlsx', index_col=1, header=0)['Inter-measures.T50_common_count']})
+                    for species in ['Homo sapiens', 'Mus musculus']:
+                        print('Re-analyzing for of %s, %s:' % (species, celltype), flush=True)
 
-                    analyze(None, receptorsListHugo_2555, gECs, gECi, 'correlation',
-                            suffix='%s_%s' % (species, celltype), saveDir=workingDir + '%s/%s/' % (celltype, species), toggleIncludeHeatmap=True,
-                            toggleCalculateMajorMetric=False, toggleExportFigureData=True, toggleCalculateMeasures=False,
-                            externalPanelsData=additionalData) 
+                        additionalData = externalPanelsData.copy()
+                        additionalData.update({
+                            'diffExpressedGenes': pd.read_hdf(processedDataDir + 'PanglaoDB_ttest_ranks_per_batch_%s_%s.h5' % (species, celltype), key='df'),
+                            'conservedGenes': pd.read_excel(comparisonName + '.xlsx', index_col=1, header=0)['Inter-measures.T50_common_count']})
+
+                        analyze(None, receptorsListHugo_2555, coSignallingGenes, [], 'correlation',
+                                suffix='%s_%s' % (species, celltype), saveDir=workingDir + '%s/%s/' % (celltype, species), toggleIncludeHeatmap=True,
+                                toggleCalculateMajorMetric=False, toggleExportFigureData=True, toggleCalculateMeasures=False,
+                                externalPanelsData=additionalData, nCPUs=nCPUs) 
             
             except Exception as exception:
-                print('\nERROR:', exception, '\n')
+                print('\nANALYSIS ERROR:', exception, '\n')
 

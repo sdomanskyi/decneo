@@ -9,7 +9,7 @@ g16 = ['CD3D','CD27','CD28','CD82','ICOS','CD226','TNFRSF18','TNFRSF9', # stimul
 
 gEC23 = ['KDR','FLT1','FLT4','NRP1','NRP2','FGFR1','FGFR2','FGFR3','CXCR2','ROBO1',
          'ROBO4','ENG','PDGFRA','PDGFRB','TEK','KIT','MET','CLEC14A', # stimulators
-         'PNPLA2','CD36','CD47','VLDLR','PLXND1'] # inhibitors
+         'CD36','CD47','VLDLR','PLXND1'] # inhibitors # on 08/24/2020 removed 'PNPLA2', due to low evidence that 'PNPLA2' is a receptor
 
 g13 = ['PTPRB','TEK','TIE1','CD93','PECAM1','ENG','RAMP2','ADGRL4','CDH5','KDR','ESAM','ADGRF5','FLT1']
 

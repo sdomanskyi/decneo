@@ -1,6 +1,6 @@
-from common import *
+from commonFunctions import *
 
-def analyze(df_expr, selGenes, stimulators, inhibitors, majorMetric, toggleCalculateMajorMetric = True, exprCutoff = 0.05, toggleExportFigureData = True, toggleCalculateMeasures = True, suffix = '', saveDir = '', toggleGroupBatches = True, dpi = 300, toggleAdjustText = True, panels = None, figureSize=(8, 22), toggleAdjustFigureHeight=True, noPlot = False, halfWindowSize = 10, printStages = True, externalPanelsData = None, metricsFile = 'metricsFile.h5', toggleIncludeHeatmap = True):
+def analyze(df_expr, selGenes, stimulators, inhibitors, majorMetric, toggleCalculateMajorMetric = True, exprCutoff = 0.05, toggleExportFigureData = True, toggleCalculateMeasures = True, suffix = '', saveDir = '', toggleGroupBatches = True, dpi = 300, toggleAdjustText = True, panels = None, figureSize=(8, 22), toggleAdjustFigureHeight=True, noPlot = False, halfWindowSize = 10, printStages = True, externalPanelsData = None, metricsFile = 'metricsFile.h5', toggleIncludeHeatmap = True, nCPUs = 4):
 
     '''Parameters:
         df_expr: Take one species, one cluster (subset of clusters)
@@ -23,7 +23,7 @@ def analyze(df_expr, selGenes, stimulators, inhibitors, majorMetric, toggleCalcu
 
         # For each batch calculate gene expression distance metric
         print('Calculating distance metric', flush=True)
-        df_measure = get_df_distance(df_expr, metric=majorMetric, genes=selGenes, analyzeBy='batch', minSize=10, groupBatches=groupBatches, cutoff=exprCutoff)
+        df_measure = get_df_distance(df_expr, metric=majorMetric, genes=selGenes, analyzeBy='batch', minSize=10, groupBatches=groupBatches, cutoff=exprCutoff, nCPUs=nCPUs)
 
         print('Recording major metric (shape: %s, %s) to h5' % df_measure.shape, flush=True)
         df_measure.to_hdf(os.path.join(saveDir, metricsFile), key=majorMetric, mode='a', complevel=4, complib='zlib')
@@ -62,6 +62,7 @@ def analyze(df_expr, selGenes, stimulators, inhibitors, majorMetric, toggleCalcu
 
         if panels is None:
             panels = [
+                    'combo3peak', 
                     #'combo3', 
                     'combo3avgs', 
                     
@@ -283,7 +284,7 @@ def analyze(df_expr, selGenes, stimulators, inhibitors, majorMetric, toggleCalcu
 
             return
 
-        def addBar(fig, dataArgs, panel, coords, halfWindowSize = halfWindowSize):
+        def addBar(fig, dataArgs, panel, coords, halfWindowSize = halfWindowSize, noAverage = False):
 
             nonlocal panelsData, panelsDataNames, externalPanelsData
 
@@ -417,7 +418,7 @@ def analyze(df_expr, selGenes, stimulators, inhibitors, majorMetric, toggleCalcu
 
                     data = data[data > 0].sort_values()[:1000]
                     diffExpressedGenes = data.index
-                    data = -np.log(nx_binom('data/PCN.txt', enriched_genes=diffExpressedGenes, target_genes=receptorsListHugo_2555)['Binomial_Prob'].reindex(allGenes).values)
+                    data = -np.log(binomialEnrichmentProbability('data/PCN.txt', enriched_genes=diffExpressedGenes, target_genes=receptorsListHugo_2555)['Binomial_Prob'].reindex(allGenes).values)
                 except:
                     data = np.zeros(len(allGenes))
 
@@ -429,7 +430,7 @@ def analyze(df_expr, selGenes, stimulators, inhibitors, majorMetric, toggleCalcu
                         data = data[data > 0].sort_values()[:1000]
                         diffExpressedGenes = data.index
 
-                        data = -np.log(nx_binom('data/PCN.txt', enriched_genes=diffExpressedGenes, target_genes=receptorsListHugo_2555)['Binomial_Prob'].reindex(allGenes).values)
+                        data = -np.log(binomialEnrichmentProbability('data/PCN.txt', enriched_genes=diffExpressedGenes, target_genes=receptorsListHugo_2555)['Binomial_Prob'].reindex(allGenes).values)
                     except:
                         pass
 
@@ -472,6 +473,19 @@ def analyze(df_expr, selGenes, stimulators, inhibitors, majorMetric, toggleCalcu
                 ylabel='variability\n4 cov'
                 try:
                     data = externalPanelsData['variability_4']['cov'].reindex(allGenes).values              
+                except:
+                    data = np.zeros(len(allGenes))
+
+            elif panel == 'combo3peak':
+                ylabel='Half-peak\ngenes'
+                try:
+                    data = pd.Series(index=allGenes, data=np.nan_to_num(panelsData['Avg Combination 3 avgs']))
+                    data /= data.max()
+                    peaks = getGenesOfPeak(data)
+                    data[:] = 0.
+                    data[peaks] = 1.
+
+                    noAverage = True
                 except:
                     data = np.zeros(len(allGenes))
 
@@ -564,9 +578,10 @@ def analyze(df_expr, selGenes, stimulators, inhibitors, majorMetric, toggleCalcu
             ax.bar(range(len(clusters)), data, width=ax.get_xlim()[1]/len(clusters), color=tickLabelsColors)
 
             data_avg = movingAverageCenteredLooped(np.nan_to_num(data), halfWindowSize)
-            ax.plot(range(len(clusters)), data_avg, linewidth=1.0, color='coral', alpha=1.0)
 
-            ax.text(0.999, 0.95, 'window = %s' % (2*halfWindowSize + 1), c='coral', ha='right', va='top', transform=ax.transAxes, fontsize=3)
+            if not noAverage:
+                ax.plot(range(len(clusters)), data_avg, linewidth=1.0, color='coral', alpha=1.0)
+                ax.text(0.999, 0.95, 'window = %s' % (2*halfWindowSize + 1), c='coral', ha='right', va='top', transform=ax.transAxes, fontsize=3)
 
             nandata = np.isnan(data)
             if np.sum(nandata) > 0:
@@ -772,7 +787,11 @@ def analyze(df_expr, selGenes, stimulators, inhibitors, majorMetric, toggleCalcu
 
             se = pd.Series(index=orderedGenes, data=scores).dropna().sort_values(ascending=True)
 
-            AUC = roc_auc_score(~np.isin(se.index.values, selGenes23), se.values) if len(se) >= 10 else np.nan
+            try:
+                AUC = roc_auc_score(~np.isin(se.index.values, selGenes23), se.values) if len(se) >= 10 else np.nan
+            except:
+                AUC = np.nan
+
             T50 = se.index.values[:top]
             subT50 = np.intersect1d(T50, selGenes23)
 
@@ -798,16 +817,11 @@ def analyze(df_expr, selGenes, stimulators, inhibitors, majorMetric, toggleCalcu
 
 def compareTwoCases(saveDir1, saveDir2, name1 = 'N1', name2='N2', majorMetric = 'correlation', saveName = 'saveName'):
 
-    #name1 = saveDir1.split('/')[-2]
-    #name2 = saveDir2.split('/')[-2]
-
     df1 = pd.read_hdf(os.path.join(saveDir1, 'per-gene-measures-%s.h5' % majorMetric), key='df')
     df2 = pd.read_hdf(os.path.join(saveDir2, 'per-gene-measures-%s.h5' % majorMetric), key='df')
 
     n23_1 = len(np.intersect1d(np.unique(df1.index.get_level_values('gene').values), gEC23))
     n23_2 = len(np.intersect1d(np.unique(df2.index.get_level_values('gene').values), gEC23))
-
-    #print('Comparing two cases', n23_1, n23_2)
 
     commonIndex = df1.index.intersection(df2.index)
     df1 = df1.loc[commonIndex]
@@ -828,7 +842,6 @@ def compareTwoCases(saveDir1, saveDir2, name1 = 'N1', name2='N2', majorMetric = 
                         df_EC23T50_common_count, 
                         df_T50_common.apply(cleanListString), 
                         df_T50_common_count, 
-                        #df_AUC_avg, 
                         df1['AUC'].astype(float), 
                         df2['AUC'].astype(float),
                         df1['EC23T50'].str.split(',').apply(len), 
@@ -839,7 +852,6 @@ def compareTwoCases(saveDir1, saveDir2, name1 = 'N1', name2='N2', majorMetric = 
                              ('Inter-measures', 'EC23T50_common_count'), 
                              ('Inter-measures', 'T50_common'), 
                              ('Inter-measures', 'T50_common_count'), 
-                             #('Inter-measures', 'AUC_avg'), 
                              ('Intra-measures', 'AUC ' + name1), 
                              ('Intra-measures', 'AUC ' + name2),
                              ('Intra-measures', 'EC23 count ' + name1 + ' %s' % n23_1), 
@@ -853,12 +865,13 @@ def compareTwoCases(saveDir1, saveDir2, name1 = 'N1', name2='N2', majorMetric = 
     df_res = df_res.sort_index()
     df_res.to_excel('%s.xlsx' % saveName, merge_cells=False)
 
-    df_res_f = df_res.copy()
-    df_res_f = df_res_f.loc[(df_res_f[('Intra-measures', 'EC23 count ' + name1 + ' %s' % n23_1)] >= 5) &
-                            (df_res_f[('Intra-measures', 'EC23 count ' + name2 + ' %s' % n23_2)] >= 5) &
-                            (df_res_f[('Intra-measures', 'AUC ' + name1)] >= 0.5) &
-                            (df_res_f[('Intra-measures', 'AUC ' + name2)] >= 0.5)]
-    df_res_f.to_excel('%s_filtered.xlsx' % saveName, merge_cells=False)
+    if False:
+        df_res_f = df_res.copy()
+        df_res_f = df_res_f.loc[(df_res_f[('Intra-measures', 'EC23 count ' + name1 + ' %s' % n23_1)] >= 5) &
+                                (df_res_f[('Intra-measures', 'EC23 count ' + name2 + ' %s' % n23_2)] >= 5) &
+                                (df_res_f[('Intra-measures', 'AUC ' + name1)] >= 0.5) &
+                                (df_res_f[('Intra-measures', 'AUC ' + name2)] >= 0.5)]
+        df_res_f.to_excel('%s_filtered.xlsx' % saveName, merge_cells=False)
 
     return
 
@@ -956,6 +969,6 @@ def runPairOfBootstrapExperiments(args):
                         diffExpressedGenes=None, conservation=conservation, printStages=False) 
 
     except Exception as exception:
-        print(exception)
+        print('COMPARISON ERROR:', exception)
 
     return
