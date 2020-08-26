@@ -3,7 +3,7 @@ from genes import *
 
 cleanListString = lambda c: str(list(c)).replace(' ', '').replace("'", '').replace(']', '').replace('[', '').replace(',', ', ')
 
-def movingAverageCentered(a, halfWindowSize):
+def movingAverageCenteredLooped(a, halfWindowSize, looped = False):
 
     '''
     An intuitive way:
@@ -20,7 +20,7 @@ def movingAverageCentered(a, halfWindowSize):
         plt.plot(np.arange(len(a)), a, 'o')
 
         for n in [1,2,5,10]:
-            a_avg = movingAverageCenteredLooped(a, n)
+            a_avg = movingAverageCenteredLooped(a, n, looped=False)
             print(np.sum(a_avg))
             plt.plot(np.arange(len(a)), a_avg)
 
@@ -29,43 +29,23 @@ def movingAverageCentered(a, halfWindowSize):
 
     n = halfWindowSize
 
-    b = np.append(np.append(a[-n:], a), a[:n])
+    if looped:
+        b = np.append(np.append(a[-n:], a), a[:n])
+    else:
+        b = np.append(np.append(np.zeros(n), a), np.zeros(n))
+
     s = np.cumsum(b) / (2.*n + 1.)
     s[2*n+1:] -= s[:-2*n-1]
 
-    return s[2*n:]
+    aSm = s[2*n:]
 
-def movingAverageCenteredLooped(a, halfWindowSize):
+    if not looped:
+        for i in range(n):
+            e = i + n + 1
+            aSm[i] = a[:e].mean()
+            aSm[len(a) - i - 1] = a[-e:].mean()
 
-    '''
-    An intuitive way:
-    b = np.append(np.append(a[-n:], a), a[:n])
-    a_smoothed = np.array([np.sum(b[i-n:i+n+1]) / (2.*n + 1.) for i in range(n, len(b)-n)])
-
-    Faster way is to use np.cumsum(), especially for long vectors
-
-    if False:
-        np.random.seed(0)
-        a = np.sin(np.random.rand(100)*2.*180./np.pi) + 1.
-        a[a > 0.5] = 0
-        print(np.sum(a))
-        plt.plot(np.arange(len(a)), a, 'o')
-
-        for n in [1,2,5,10]:
-            a_avg = movingAverageCenteredLooped(a, n)
-            print(np.sum(a_avg))
-            plt.plot(np.arange(len(a)), a_avg)
-
-        plt.show()
-    '''
-
-    n = halfWindowSize
-
-    b = np.append(np.append(a[-n:], a), a[:n])
-    s = np.cumsum(b) / (2.*n + 1.)
-    s[2*n+1:] -= s[:-2*n-1]
-
-    return s[2*n:]
+    return aSm
 
 def get_mean_std_cov_ofDataframe(df):
 
@@ -89,11 +69,12 @@ def extractBootstrapVariability(variant, filePath = '', savePath = ''):
 
     writer = pd.ExcelWriter(savePath)
     for species in np.unique(df.columns.get_level_values('species')):
-        get_mean_std_cov_ofDataframe(df.xs(species, level='species', axis=1)).to_excel(writer, species)
+        df_temp = get_mean_std_cov_ofDataframe(df.xs(species, level='species', axis=1))
+        df_temp.to_excel(writer, species)
 
     writer.save()
 
-    return
+    return savePath
 
 def getGenesOfPeak(se, heightCutoff = 0.5):
 
@@ -491,5 +472,3 @@ def reduce(v, size = 100):
     bins =  np.linspace(np.min(v), np.max(v), num=size)
 
     return bins[np.digitize(v, bins) - 1]
-
-

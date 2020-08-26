@@ -1,6 +1,58 @@
 from commonFunctions import *
 
-def analyze(df_expr, selGenes, stimulators, inhibitors, majorMetric, toggleCalculateMajorMetric = True, exprCutoff = 0.05, toggleExportFigureData = True, toggleCalculateMeasures = True, suffix = '', saveDir = '', toggleGroupBatches = True, dpi = 300, toggleAdjustText = True, panels = None, figureSize=(8, 22), toggleAdjustFigureHeight=True, noPlot = False, halfWindowSize = 10, printStages = True, externalPanelsData = None, metricsFile = 'metricsFile.h5', toggleIncludeHeatmap = True, nCPUs = 4):
+standardPanels = [
+    'fraction', 
+    'top50', 
+    'binomial', 
+    'markers', 
+    'PubMedHits', 
+    'gAbove50_PanglaoMouse', 
+    'gAbove50_PanglaoHuman', 
+    ]
+
+combinationPanelsDict = {
+    'combo2avgs-peak': None,
+    'combo2avgs': ['fraction', 'top50'],
+
+    'combo3avgs-peak': None,
+    'combo3avgs': ['fraction', 'top50', 'binomial'],
+
+    'combo4avgs-peak': None,
+    'combo4avgs': ['fraction', 'top50', 'binomial', 'markers'],
+
+    'combo5-1avgs-peak': None,
+    'combo5-1avgs': ['fraction', 'top50', 'binomial', 'markers', 'PubMedHits'],
+
+    'combo5-2avgs-peak': None,
+    'combo5-2avgs': ['fraction', 'top50', 'binomial', 'markers', 'gAbove50_PanglaoMouse'],
+
+    'combo5-3avgs-peak': None,
+    'combo5-3avgs': ['fraction', 'top50', 'binomial', 'markers', 'gAbove50_PanglaoHuman'],
+
+    'combo6-1avgs-peak': None,
+    'combo6-1avgs': ['fraction', 'top50', 'binomial', 'markers', 'PubMedHits', 'gAbove50_PanglaoMouse'],
+
+    'combo6-2avgs-peak': None,
+    'combo6-2avgs': ['fraction', 'top50', 'binomial', 'markers', 'PubMedHits', 'gAbove50_PanglaoHuman'],
+
+    'combo6-3avgs-peak': None,
+    'combo6-3avgs': ['fraction', 'top50', 'binomial', 'markers', 'gAbove50_PanglaoMouse', 'gAbove50_PanglaoHuman'],
+
+    'combo7avgs-peak': None,
+    'combo7avgs': ['fraction', 'top50', 'binomial', 'markers', 'PubMedHits', 'gAbove50_PanglaoMouse', 'gAbove50_PanglaoHuman'],
+    }
+
+deprecatedPanels = [                    
+    'GOpositive', 
+    'GOnegative', 
+    'markerstop50', 
+    'expression', 
+    'closeness',
+    'age', 
+    'rate', 
+    ]
+
+def analyze(df_expr, selGenes, stimulators, inhibitors, majorMetric, toggleCalculateMajorMetric = True, exprCutoff = 0.05, toggleExportFigureData = True, toggleCalculateMeasures = True, suffix = '', saveDir = '', toggleGroupBatches = True, dpi = 300, toggleAdjustText = True, panels = None, figureSize=(8, 22), toggleAdjustFigureHeight=True, noPlot = False, halfWindowSize = 10, printStages = True, externalPanelsData = None, metricsFile = 'metricsFile.h5', toggleIncludeHeatmap = True, nCPUs = 4, addDeprecatedPanels = False):
 
     '''Parameters:
         df_expr: Take one species, one cluster (subset of clusters)
@@ -61,39 +113,10 @@ def analyze(df_expr, selGenes, stimulators, inhibitors, majorMetric, toggleCalcu
         nonlocal panels, figureSize
 
         if panels is None:
-            panels = [
-                    'combo3peak', 
-                    #'combo3', 
-                    'combo3avgs', 
-                    
-                    #'variability_3mean',                    
-                    #'variability_3std',                    
-                    #'variability_3cov',
+            panels = list(combinationPanelsDict.keys()) + standardPanels
 
-                    #'combo4', 
-                    #'combo4avgs',  
-                    
-                    #'variability_4mean',                    
-                    #'variability_4std',                    
-                    #'variability_4cov',   
-                    
-                    'fraction', 
-                    'binomial', 
-                    'top50', 
-                    #'markers', 
-
-                    #'PubMedHits', 
-                    #'gAbove50_PanglaoMouse', 
-                    #'gAbove50_PanglaoHuman', 
-                    #'GOpositive', 
-                    #'GOnegative', 
-
-                    #'markerstop50', 
-                    'expression', 
-                    'closeness',
-                    'age', 
-                    'rate', 
-                    ]
+            if addDeprecatedPanels:
+                panels += deprecatedPanels
 
         def addDendro(fig, dataGenes, M, coords, metric=metric, linewidth=0.25, adjustText = adjustText, fontsize = 5):
 
@@ -305,7 +328,7 @@ def analyze(df_expr, selGenes, stimulators, inhibitors, majorMetric, toggleCalcu
             if panel == 'fraction':
                 ylabel='Fraction'
                 try:
-                    data =pd.read_hdf(os.path.join(saveDir, 'perGeneStats.h5'), key='df_fraction').reindex(allGenes)
+                    data = pd.read_hdf(os.path.join(saveDir, 'perGeneStats.h5'), key='df_fraction').reindex(allGenes)
                     if type(data) is pd.Series:
                         data = data.values
                     else:
@@ -355,9 +378,10 @@ def analyze(df_expr, selGenes, stimulators, inhibitors, majorMetric, toggleCalcu
                     data = np.zeros(len(allGenes))
 
             elif panel == 'PubMedHits':
-                ylabel='log(PubMedHits)'
+                ylabel='PubMedHits'
                 try:
-                    data = np.log(pd.Series(externalPanelsData['pubMed angiogenesis hits'])).reindex(allGenes).values
+                    data = pd.Series(externalPanelsData['pubMed angiogenesis hits']).reindex(allGenes).values
+                    #data = np.log(data)
                 except:
                     data = np.zeros(len(allGenes))
 
@@ -454,32 +478,12 @@ def analyze(df_expr, selGenes, stimulators, inhibitors, majorMetric, toggleCalcu
                     data = externalPanelsData['variability_3']['cov'].reindex(allGenes).values              
                 except:
                     data = np.zeros(len(allGenes))
-                    
-            elif panel == 'variability_4mean':
-                ylabel='variability\n4 mean'
-                try:
-                    data = externalPanelsData['variability_4']['mean'].reindex(allGenes).values              
-                except:
-                    data = np.zeros(len(allGenes))
 
-            elif panel == 'variability_4std':
-                ylabel='variability\n4 std'
+            elif panel[-len('-peak'):] == '-peak':
+                ylabel = panel
                 try:
-                    data = externalPanelsData['variability_4']['std'].reindex(allGenes).values              
-                except:
-                    data = np.zeros(len(allGenes))
-
-            elif panel == 'variability_4cov':
-                ylabel='variability\n4 cov'
-                try:
-                    data = externalPanelsData['variability_4']['cov'].reindex(allGenes).values              
-                except:
-                    data = np.zeros(len(allGenes))
-
-            elif panel == 'combo3peak':
-                ylabel='Half-peak\ngenes'
-                try:
-                    data = pd.Series(index=allGenes, data=np.nan_to_num(panelsData['Avg Combination 3 avgs']))
+                    targetPanel = 'Avg ' + panel[:-len('-peak')]
+                    data = pd.Series(index=allGenes, data=np.nan_to_num(panelsData[panelsDataNames[targetPanel]]))
                     data /= data.max()
                     peaks = getGenesOfPeak(data)
                     data[:] = 0.
@@ -489,89 +493,23 @@ def analyze(df_expr, selGenes, stimulators, inhibitors, majorMetric, toggleCalcu
                 except:
                     data = np.zeros(len(allGenes))
 
-            elif panel == 'combo3':
-                ylabel='Combination\n3'
+            elif panel[:len('combo')] == 'combo':
+                ylabel = panel
                 try:
-                    data = np.zeros(len(allGenes))
+                    def norm1(s):
 
-                    def func(s):
-                       
                         w = np.nansum(panelsData[panelsDataNames[s]])
                         if w != w or w == 0.:
                             w = 1.
 
-                        result = np.nan_to_num(panelsData[panelsDataNames[s]]) / w
+                        return np.nan_to_num(panelsData[panelsDataNames[s]]) / w
 
-                        return result
-
-                    data += func('fraction')
-                    data += func('binomial')
-                    data += func('top50')
-                except:
                     data = np.zeros(len(allGenes))
-
-            elif panel == 'combo3avgs':
-                ylabel='Combination\n3 avgs'
-                try:
-                    data = np.zeros(len(allGenes))
-
-                    def func(s):
-                       
-                        w = np.nansum(panelsData[panelsDataNames[s]])
-                        if w != w or w == 0.:
-                            w = 1.
-
-                        result = np.nan_to_num(panelsData[panelsDataNames[s]]) / w
-
-                        return movingAverageCenteredLooped(result, halfWindowSize)
-
-                    data += func('fraction')
-                    data += func('binomial')
-                    data += func('top50')
-                except:
-                    data = np.zeros(len(allGenes))
-                    
-            elif panel == 'combo4':
-                ylabel='Combination\n4'
-                try:
-                    data = np.zeros(len(allGenes))
-
-                    def func(s):
-                       
-                        w = np.nansum(panelsData[panelsDataNames[s]])
-                        if w != w or w == 0.:
-                            w = 1.
-
-                        result = np.nan_to_num(panelsData[panelsDataNames[s]]) / w
-
-                        return result
-
-                    data += func('fraction')
-                    data += func('binomial')
-                    data += func('top50')
-                    data += func('markers')
-                except:
-                    data = np.zeros(len(allGenes))
-
-            elif panel == 'combo4avgs':
-                ylabel='Combination\n4 avgs'
-                try:
-                    data = np.zeros(len(allGenes))
-
-                    def func(s):
-                       
-                        w = np.nansum(panelsData[panelsDataNames[s]])
-                        if w != w or w == 0.:
-                            w = 1.
-
-                        result = np.nan_to_num(panelsData[panelsDataNames[s]]) / w
-
-                        return movingAverageCenteredLooped(result, halfWindowSize)
-
-                    data += func('fraction')
-                    data += func('binomial')
-                    data += func('top50')
-                    data += func('markers')
+                    for subPanel in combinationPanelsDict[panel]:
+                        if panel[-len('avgs'):] == 'avgs':
+                            data += movingAverageCenteredLooped(norm1(subPanel), halfWindowSize)
+                        else:
+                            data += norm1(subPanel)
                 except:
                     data = np.zeros(len(allGenes))
 
