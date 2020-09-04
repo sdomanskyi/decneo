@@ -154,18 +154,16 @@ def runPairOfExperiments(args):
     try:
         comparisonName = os.path.join(saveDir, 'Homo sapiens', saveSubDir, 'comparison')
 
-        if False:
+        if True:
             species = 'Homo sapiens'
             analyze(None, receptorsListHugo_2555, gEC23, [], 'correlation', toggleAdjustText=False, noPlot=True, panels=[],
                     suffix=saveSubDir + ', ' + species, saveDir=os.path.join(saveDir, species, saveSubDir), printStages=False,
                     toggleCalculateMajorMetric=False, toggleExportFigureData=True, toggleCalculateMeasures=True)
 
         if True:
-            cDir = 'workflow/PanglaoDB EC all cells w21/Mus musculus/'
-            #cDir = os.path.join('workflow/PanglaoDB EC all bootstrap 100 w21/Mus musculus/', saveSubDir, '')
-
             compareTwoCases(os.path.join(saveDir, 'Homo sapiens', saveSubDir, ''), 
-                            cDir, name1='human', name2='mouse', saveName=comparisonName)
+                            'workflow/PanglaoDB EC all cells w21/Mus musculus/', 
+                            name1='human', name2='mouse', saveName=comparisonName)
 
             additionalData = externalPanelsData.copy()
             additionalData.update({'conservedGenes': pd.read_excel(comparisonName + '.xlsx', index_col=1, header=0)['Inter-measures.T50_common_count'],
@@ -249,12 +247,8 @@ def analyzeVoigtChoroid():
     compareTwoCases(bootstrapDir + 'Homo sapiens/All/', 'workflow/PanglaoDB EC all cells w21/Mus musculus/', saveName=comparisonName)
 
     additionalData = externalPanelsData.copy()
-    additionalData.update({'diffExpressedGenes': pd.read_hdf(workingDir + 'df_ranks_Voigt_choroid.h5', key='df'),
-                          'variability_3': pd.read_excel(bootstrapDir + '/variability_' + 'Avg 13 Combination 3 avgs'.replace(' ', '-') + '.xlsx', index_col=0, header=0),
-                          'variability_4': pd.read_excel(bootstrapDir + '/variability_' + 'Avg 11 Combination 4 avgs'.replace(' ', '-') + '.xlsx', index_col=0, header=0),
-                          'conservedGenes': pd.read_excel(comparisonName + '.xlsx', index_col=1, header=0)['Inter-measures.T50_common_count'],
-                          'conservedMarkers': pd.read_excel(comparisonName + '.xlsx', index_col=1, header=0)['Inter-measures.EC23T50_common_count']
-                          })
+    additionalData.update({'conservedGenes': pd.read_excel(comparisonName + '.xlsx', index_col=1, header=0)['Inter-measures.T50_common_count'],
+                          'conservedMarkers': pd.read_excel(comparisonName + '.xlsx', index_col=1, header=0)['Inter-measures.EC23T50_common_count']})
 
     print('Re-plotting choroid Voigt')
     analyze(None, receptorsListHugo_2555, gECs, gECi, 'correlation', exprCutoff=0.01,
@@ -284,7 +278,7 @@ if __name__ == '__main__':
 
     # Step 2. Generate data for bootstrap experiments
     if False:
-        np.random.seed(0)
+        np.random.seed(5642)
         prepareBootstrapExperiments(workingDir + 'ChoroidbyBatches/', bootstrapDir + 'Homo sapiens/', ids=bootstrapExperiments, allDataToo=True, df_ranks=pd.read_hdf(fname_Voigt_Choroid_original_data_AH_subset_ranks, key='df'))
 
     # Step 3. Analyze bootstrap experiments and collect all dendro data
@@ -318,9 +312,10 @@ if __name__ == '__main__':
         dfs.to_hdf(bootstrapDir + 'bootstrap_100experiments_dendro_data.h5', key='df', mode='a', complevel=4, complib='zlib')
 
     # Step 4. Anlyze peaks from bootstrap experiments
-    if True:
+    if False:
         totalResults = dict()
-        for variant in ['Avg combo7avgs', 'Avg combo6-3avgs', 'Avg combo6-2avgs', 'Avg combo6-1avgs', 'Avg combo5-3avgs', 'Avg combo5-2avgs', 'Avg combo5-1avgs', 'Avg combo4avgs', 'Avg combo3avgs', 'Avg combo2avgs'][:]:
+        #for variant in ['Avg combo7avgs', 'Avg combo6-3avgs', 'Avg combo6-2avgs', 'Avg combo6-1avgs', 'Avg combo5-3avgs', 'Avg combo5-2avgs', 'Avg combo5-1avgs', 'Avg combo4avgs', 'Avg combo3avgs', 'Avg combo2avgs','Avg Markers','Avg Binomial -log(pvalue)','Avg Top50 overlap','Avg Fraction'][:]:
+        for variant in ['Avg combo4avgs', 'Avg combo3avgs']: 
             totalResults.update(analyzeCombinationVariant(variant))
 
         df_totalResults = []
@@ -341,6 +336,14 @@ if __name__ == '__main__':
         df_totalResults.to_excel(bootstrapDir + 'variants_cut.xlsx')
         print(df_totalResults)
 
+    # Step 5A. Dendrogram randomization
     if False:
-        runPairOfExperiments((bootstrapDir, 'All'))
+        df = pd.read_excel(os.path.join(bootstrapDir + 'Homo sapiens/All/dendrogram-heatmap-correlation-data.xlsx'), index_col=0, header=0, sheet_name='Cluster index')
+            
+        scramble(df.copy(), ['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], workingDir=bootstrapDir + 'random/Homo sapiens/combo4/', M=20)
+        scramble(df.copy(), ['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], workingDir=bootstrapDir + 'random/Homo sapiens/combo3/', M=20)
 
+    # For testing purposes
+    if False:
+        analyzeVoigtChoroid()
+        runPairOfExperiments((bootstrapDir, 'All')); exit()

@@ -5,41 +5,41 @@ standardPanels = [
     'top50', 
     'binomial', 
     'markers', 
-    'PubMedHits', 
-    'gAbove50_PanglaoMouse', 
-    'gAbove50_PanglaoHuman', 
+    #'PubMedHits', 
+    #'gAbove50_PanglaoMouse', 
+    #'gAbove50_PanglaoHuman', 
     ]
 
 combinationPanelsDict = {
-    'combo2avgs-peak': None,
-    'combo2avgs': ['fraction', 'top50'],
+    #'combo2avgs-peak': None,
+    #'combo2avgs': ['fraction', 'top50'],
 
-    'combo3avgs-peak': None,
+    #'combo3avgs-peak': None,
     'combo3avgs': ['fraction', 'top50', 'binomial'],
 
-    'combo4avgs-peak': None,
+    #'combo4avgs-peak': None,
     'combo4avgs': ['fraction', 'top50', 'binomial', 'markers'],
 
-    'combo5-1avgs-peak': None,
-    'combo5-1avgs': ['fraction', 'top50', 'binomial', 'markers', 'PubMedHits'],
+    #'combo5-1avgs-peak': None,
+    #'combo5-1avgs': ['fraction', 'top50', 'binomial', 'markers', 'PubMedHits'],
 
-    'combo5-2avgs-peak': None,
-    'combo5-2avgs': ['fraction', 'top50', 'binomial', 'markers', 'gAbove50_PanglaoMouse'],
+    #'combo5-2avgs-peak': None,
+    #'combo5-2avgs': ['fraction', 'top50', 'binomial', 'markers', 'gAbove50_PanglaoMouse'],
 
-    'combo5-3avgs-peak': None,
-    'combo5-3avgs': ['fraction', 'top50', 'binomial', 'markers', 'gAbove50_PanglaoHuman'],
+    #'combo5-3avgs-peak': None,
+    #'combo5-3avgs': ['fraction', 'top50', 'binomial', 'markers', 'gAbove50_PanglaoHuman'],
 
-    'combo6-1avgs-peak': None,
-    'combo6-1avgs': ['fraction', 'top50', 'binomial', 'markers', 'PubMedHits', 'gAbove50_PanglaoMouse'],
+    #'combo6-1avgs-peak': None,
+    #'combo6-1avgs': ['fraction', 'top50', 'binomial', 'markers', 'PubMedHits', 'gAbove50_PanglaoMouse'],
 
-    'combo6-2avgs-peak': None,
-    'combo6-2avgs': ['fraction', 'top50', 'binomial', 'markers', 'PubMedHits', 'gAbove50_PanglaoHuman'],
+    #'combo6-2avgs-peak': None,
+    #'combo6-2avgs': ['fraction', 'top50', 'binomial', 'markers', 'PubMedHits', 'gAbove50_PanglaoHuman'],
 
-    'combo6-3avgs-peak': None,
-    'combo6-3avgs': ['fraction', 'top50', 'binomial', 'markers', 'gAbove50_PanglaoMouse', 'gAbove50_PanglaoHuman'],
+    #'combo6-3avgs-peak': None,
+    #'combo6-3avgs': ['fraction', 'top50', 'binomial', 'markers', 'gAbove50_PanglaoMouse', 'gAbove50_PanglaoHuman'],
 
-    'combo7avgs-peak': None,
-    'combo7avgs': ['fraction', 'top50', 'binomial', 'markers', 'PubMedHits', 'gAbove50_PanglaoMouse', 'gAbove50_PanglaoHuman'],
+    #'combo7avgs-peak': None,
+    #'combo7avgs': ['fraction', 'top50', 'binomial', 'markers', 'PubMedHits', 'gAbove50_PanglaoMouse', 'gAbove50_PanglaoHuman'],
     }
 
 deprecatedPanels = [                    
@@ -174,7 +174,7 @@ def analyze(df_expr, selGenes, stimulators, inhibitors, majorMetric, toggleCalcu
                         
 
                 if adjustText:
-                    adjust_text(texts, va='top', ha='center', autoalign='x', lim=400, only_move={'text':'x'})
+                    adjust_text(texts, va='top', ha='center', autoalign='x', lim=400, only_move={'text':'x'}, force_text=(0.2, 0.5))
 
                 v = 0.04 * ax.get_ylim()[1]
                 for text, opos in zip(texts, origPos):
@@ -321,6 +321,16 @@ def analyze(df_expr, selGenes, stimulators, inhibitors, majorMetric, toggleCalcu
             clusterBoundaries =  dataArgs['clusterBoundaries']
             clusterCenters =  dataArgs['clusterCenters']
             allGenes = dataArgs['allGenes'] 
+            showBoundaries = True
+
+            # Draw randomized bar panels
+            if False:
+                showBoundaries = False
+                np.random.seed(0)
+                rorder = np.arange(len(allGenes))
+                np.random.shuffle(rorder)
+                allGenes = allGenes[rorder]
+                tickLabelsColors = tickLabelsColors[rorder]
 
             ax = fig.add_axes(coords, frame_on=True)
             ax.set_xlim([min(clusterBoundaries), max(clusterBoundaries)])
@@ -422,6 +432,12 @@ def analyze(df_expr, selGenes, stimulators, inhibitors, majorMetric, toggleCalcu
                 try:
                     data = np.zeros(len(allGenes))
                     data[locations] = 1.
+
+                    try:
+                        data = data[rorder]
+                    except:
+                        pass
+
                 except:
                     data = np.zeros(len(allGenes))
 
@@ -507,7 +523,7 @@ def analyze(df_expr, selGenes, stimulators, inhibitors, majorMetric, toggleCalcu
                     data = np.zeros(len(allGenes))
                     for subPanel in combinationPanelsDict[panel]:
                         if panel[-len('avgs'):] == 'avgs':
-                            data += movingAverageCenteredLooped(norm1(subPanel), halfWindowSize)
+                            data += movingAverageCentered(norm1(subPanel), halfWindowSize)
                         else:
                             data += norm1(subPanel)
                 except:
@@ -515,7 +531,7 @@ def analyze(df_expr, selGenes, stimulators, inhibitors, majorMetric, toggleCalcu
 
             ax.bar(range(len(clusters)), data, width=ax.get_xlim()[1]/len(clusters), color=tickLabelsColors)
 
-            data_avg = movingAverageCenteredLooped(np.nan_to_num(data), halfWindowSize)
+            data_avg = movingAverageCentered(np.nan_to_num(data), halfWindowSize)
 
             if not noAverage:
                 ax.plot(range(len(clusters)), data_avg, linewidth=1.0, color='coral', alpha=1.0)
@@ -535,7 +551,7 @@ def analyze(df_expr, selGenes, stimulators, inhibitors, majorMetric, toggleCalcu
 
             ax.tick_params(axis='y', labelsize=3.5, width=0.75, length=3)
 
-            if True:
+            if showBoundaries:
                 ylim = ax.get_ylim()
                 for i in range(1, len(np.unique(clusters))):
                     ax.plot([clusterBoundaries[i] - 0.5]*2, [ylim[0], ylim[1]], '--', lw=0.5, color='k', clip_on=False)
@@ -617,7 +633,7 @@ def analyze(df_expr, selGenes, stimulators, inhibitors, majorMetric, toggleCalcu
                     print('Done', flush=True)
 
             number_of_cells = np.loadtxt(os.path.join(saveDir, 'size.txt'), dtype=int)[1]
-            fig.suptitle('Data: %s\n(%s cells, %s receptors)' % (suffix, number_of_cells, df.shape[1]), fontsize=8, backgroundcolor='white')
+            fig.suptitle('Ordering by single cell co-expression\nData: %s\n(%s cells, %s receptors)' % (suffix, number_of_cells, df.shape[1]), fontsize=8, backgroundcolor='white')
 
             if printStages:
                 print('\tSaving image . . .', end='\t', flush=True)

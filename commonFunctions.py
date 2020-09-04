@@ -3,7 +3,7 @@ from genes import *
 
 cleanListString = lambda c: str(list(c)).replace(' ', '').replace("'", '').replace(']', '').replace('[', '').replace(',', ', ')
 
-def movingAverageCenteredLooped(a, halfWindowSize, looped = False):
+def movingAverageCentered(a, halfWindowSize, looped = False):
 
     '''
     An intuitive way:
@@ -76,13 +76,20 @@ def extractBootstrapVariability(variant, filePath = '', savePath = ''):
 
     return savePath
 
-def getGenesOfPeak(se, heightCutoff = 0.5):
+def getGenesOfPeak(se, heightCutoff = 0.5, maxDistance = None):
 
     se /= se.max()
     i0 = np.argmax(se.values)
     genes = [se.index[i0]]
 
-    for i in range(i0 + 1, i0 + 2*10**3, 1):
+    if heightCutoff is None:
+        heightCutoff = -np.inf
+
+    if maxDistance is None:
+        r = range(i0 + 1, i0 + 2*10**3, 1)
+    else:
+        r = range(i0 + 1, i0 + maxDistance, 1)
+    for i in r:
         try:
             if se.iloc[i] >= heightCutoff:
                 genes.append(se.index[i])
@@ -91,7 +98,11 @@ def getGenesOfPeak(se, heightCutoff = 0.5):
         except:
             break
 
-    for i in range(i0-1, 0, -1):
+    if maxDistance is None:
+        r = range(i0 - 1, 0, -1)
+    else:
+        r = range(i0 - 1, max(0, i0 - maxDistance), -1)
+    for i in r:
         try:
             if se.iloc[i] >= heightCutoff:
                 genes.append(se.index[i])
@@ -360,18 +371,6 @@ def testNumbersOfClusters(data, text = '', n_min = 2, n_max = 20, k = 10):
 
     return
 
-class Metrics:
-
-    @classmethod
-    def pearson_cor_coef(cls, X, Y):
-
-        return np.corrcoef(X, Y)[0, 1]
-
-    @classmethod
-    def spearman_cor_coef(cls, X, Y):
-
-        return np.corrcoef(X.argsort().argsort(), Y.argsort().argsort())[0, 1]
-
 def KeyInStore(key, file):
 
     try:
@@ -472,3 +471,95 @@ def reduce(v, size = 100):
     bins =  np.linspace(np.min(v), np.max(v), num=size)
 
     return bins[np.digitize(v, bins) - 1]
+
+def normSum1(data):
+
+    w = np.nansum(data)
+    if w != w or w == 0.:
+        w = 1.
+
+    return np.nan_to_num(data) / w
+
+def scramble(df, measures, workingDir = '', N = 10**4, M = 20):
+
+    if not os.path.exists(workingDir):
+        os.makedirs(workingDir)
+
+    # Run the randomization and prepare results dataframe
+    if True:
+        allGenes = df.index.values
+
+        print('\nCalculating chunks', flush=True)
+        for j in range(M):
+            listsNonmerged = []
+            for i in range(N):
+                if i % 10**3 == 0:
+                    print(j, i, end=' ', flush=True)
+
+                np.random.shuffle(allGenes)
+
+                data = np.zeros(len(allGenes))
+                for measure in measures:
+                    data += movingAverageCentered(normSum1(df[measure].loc[allGenes]), 10, looped=False)
+
+                data = movingAverageCentered(data, 10, looped=False)
+
+                listsNonmerged.append(getGenesOfPeak(pd.Series(index=allGenes, data=data), maxDistance=25))
+
+            print()
+
+            pd.Series(listsNonmerged).to_hdf(workingDir + '%s.h5' % j, key='df')
+
+        print('\nCombining chunks', flush=True)
+        dfs = []
+        for j in range(M):
+            dfs.append(pd.read_hdf(workingDir + '%s.h5' % j, key='df').apply(pd.Series))
+            print(j, end=' ', flush=True)
+
+        dfs = pd.concat(dfs, axis=0, sort=False).reset_index(drop=True).replace(np.nan, 'RemoveNaN')
+
+        print('\nAligning genes', flush=True)
+        df = pd.DataFrame(index=range(len(dfs)), columns=np.unique(dfs.values.flatten()), data=False, dtype=np.bool_).drop('RemoveNaN', axis=1)
+        for i in df.index:
+            if i % 10**3 == 0:
+                print(i, end=' ', flush=True)
+
+            df.iloc[i, :] = np.isin(df.columns.values, dfs.iloc[i, :])
+
+        print(df)
+
+        print('\nRecording', flush=True)
+        df.to_hdf(workingDir + 'combined_%s_aligned.h5' % M, key='df', mode='a', complevel=4, complib='zlib')
+
+        for j in range(M):
+            os.remove(workingDir + '%s.h5' % j)
+
+    # Save and plot counts distribution
+    if True:
+        df = pd.read_hdf(workingDir + 'combined_%s_aligned.h5' % M, key='df')
+
+        se = df.sum(axis=0).sort_values(ascending=False)/df.shape[0]
+        se.to_excel(workingDir + 'se_distribution.xlsx')
+        se.hist(bins=250)
+        plt.savefig(workingDir + 'se_distribution.png', dpi=300)
+        plt.clf()
+
+    # Check for variation of i-th quantile
+    if False:
+        df = pd.read_hdf(workingDir + 'combined_%s_aligned.h5' % M, key='df')
+
+        q = 99.999
+                
+        res = dict()
+        for i in range(1, 100):
+            print(i, end=' ', flush=True)
+            size = i*2*10**3
+            res.update({size: np.percentile((df.sample(n=size, axis=0, replace=True).sum(axis=0).sort_values(ascending=False)/size).values, q)})
+
+        se_per = pd.Series(res).sort_index()
+        se_per.to_excel(workingDir + 'se_percentile_variation_%s.xlsx' % q)
+        se_per.plot()
+        plt.savefig(workingDir + 'se_percentile_variation_%s.png' % q, dpi=300)
+        plt.clf()
+
+    return
