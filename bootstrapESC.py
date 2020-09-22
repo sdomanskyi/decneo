@@ -110,15 +110,15 @@ if __name__ == '__main__':
                 nBootstrap=100, 
                 perEachOtherCase=True)
 
-    aHuman = Analysis(**dict(args, workingDir='ESC/McCracken_hESC_vs_day8/', otherCaseDir='ESC/Han_mESC/'))
-    aMouse = Analysis(**dict(args, workingDir='ESC/Han_mESC/', otherCaseDir='ESC/McCracken_hESC_vs_day8/'))
+    aHuman = Analysis(**dict(args, workingDir='ESC/McCracken_hESC_vs_day8/', otherCaseDir='ESC/Han_mESC_vs_mesenchyme/'))
+    aMouse = Analysis(**dict(args, workingDir='ESC/Han_mESC_vs_mesenchyme/', otherCaseDir='ESC/McCracken_hESC_vs_day8/'))
 
     aHuman.prepareDEG(*prepareInputData_human_McCracken())
-    aHuman.preparePerBatchCase()
+    aHuman.preparePerBatchCase(exprCutoff=0.05)
     aHuman.prepareBootstrapExperiments()
 
     aMouse.prepareDEG(*prepareInputData_mouse_Han())
-    aMouse.preparePerBatchCase()
+    aMouse.preparePerBatchCase(exprCutoff=0.005)
     aMouse.prepareBootstrapExperiments()
 
     aHuman.analyzeBootstrapExperiments()

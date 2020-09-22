@@ -112,9 +112,9 @@ class Analysis():
 
         return
 
-    def preparePerBatchCase(self):
+    def preparePerBatchCase(self, **kwargs):
 
-        self.analyzeCase(pd.read_hdf(self.dataSaveName, key='df'), exprCutoff=0.005, suffix='all', saveDir=self.byBatchesDir, toggleCalculateMajorMetric=True, toggleExportFigureData=True, toggleCalculateMeasures=True, toggleGroupBatches=False)
+        self.analyzeCase(pd.read_hdf(self.dataSaveName, key='df'), suffix='all', saveDir=self.byBatchesDir, toggleCalculateMajorMetric=True, toggleExportFigureData=True, toggleCalculateMeasures=True, toggleGroupBatches=False, **kwargs)
 
         return
 
@@ -1180,8 +1180,8 @@ class Analysis():
 
         return
 
-    def reanalyzeMain(self):
+    def reanalyzeMain(self, **kwargs):
 
-        self.analyzeCase(None, toggleAdjustText=True, dpi=300, suffix='All', saveDir=os.path.join(self.bootstrapDir, 'All/'), printStages=True, toggleCalculateMajorMetric=False, toggleExportFigureData=True, toggleCalculateMeasures=False, externalPanelsData=dict(externalPanelsData, conservedGenes=pd.read_excel(os.path.join(self.bootstrapDir, 'All', 'comparison.xlsx'), index_col=1, header=0)['Inter-measures.T50_common_count']))
+        self.analyzeCase(None, toggleAdjustText=True, dpi=300, suffix='All', saveDir=os.path.join(self.bootstrapDir, 'All/'), printStages=True, toggleCalculateMajorMetric=False, toggleExportFigureData=True, toggleCalculateMeasures=False, externalPanelsData=dict(externalPanelsData, conservedGenes=pd.read_excel(os.path.join(self.bootstrapDir, 'All', 'comparison.xlsx'), index_col=1, header=0)['Inter-measures.T50_common_count']), **kwargs)
 
         return
