@@ -24,6 +24,20 @@ gECi = gEC23[18:]
 
 receptorsListHugo_2555 = np.loadtxt('receptorsListHugo_2555.txt', dtype=str).tolist()
 
+OSKM = ['POU5F1', 'SOX2', 'KLF4', 'MYC'] # OCT4, KLF4, SOX2, c-Myc
+TFmarkers = OSKM + ['NANOG', 'GLIS1', 'NR5A2', 'SALL4'] # from 10.1152/physrev.00039.2017
+
+if True:
+    TF = np.loadtxt('TF_1.01_HUGO.txt', dtype=str)
+else:
+    se = pd.read_excel('TranscriptionFactors_DatabaseExtract_v_1.01.xlsx', index_col='HGNC symbol', header=0)['Is TF?']
+    TF = np.unique(se[se == 'Yes'].index.values).tolist()
+    import DigitalCellSorter
+    Convert = DigitalCellSorter.DigitalCellSorter(matplotlibMode='TkAgg').gnc.Convert
+    TF = np.unique(Convert(TF, 'alias', 'hugo', returnUnknownString=False))
+    np.savetxt('TF_1.01_HUGO.txt', TF, fmt='%s')
+
+
 def populateExternalPanelsData(var):
 
     data = pd.read_excel('Rate.xlsx', header=0, index_col=0)['Rate']
