@@ -1185,3 +1185,77 @@ class Analysis():
         self.analyzeCase(None, toggleAdjustText=True, dpi=300, suffix='All', saveDir=os.path.join(self.bootstrapDir, 'All/'), printStages=True, toggleCalculateMajorMetric=False, toggleExportFigureData=True, toggleCalculateMeasures=False, externalPanelsData=dict(externalPanelsData, conservedGenes=pd.read_excel(os.path.join(self.bootstrapDir, 'All', 'comparison.xlsx'), index_col=1, header=0)['Inter-measures.T50_common_count']), **kwargs)
 
         return
+
+    def analyzeAllPeaksOfCombinationVariant(self, variant, nG = 8, nE = 30, fcutoff = 0.5, width = 50):
+
+        def getPeaksLists(df_temp):
+
+            peaksLists = {}
+            genes = []
+            for experiment in np.unique(df_temp.index.get_level_values('experiment')):
+                se = df_temp.xs(experiment, level='experiment', axis=0)
+                peaksLists.update({(experiment, i): getGenesOfPeak(se, peak=peak, maxDistance=int(width/2)) for i, peak in enumerate(getPeaks(se, distance=width))})
+                genes.extend(se.index.values.tolist())
+
+            return peaksLists, np.unique(genes)
+
+        print('Variant:', variant)
+
+        df = pd.read_hdf(self.dendroDataName, key='df').fillna(0).set_index('gene', append=True).droplevel('order')[variant]
+
+        listsDict, allgenes = getPeaksLists(df.xs('species', level='species', axis=0).copy())
+
+        se_peakAssignments = pd.Series(listsDict).apply(pd.Series)
+        df_m = pd.DataFrame(index=allgenes, data=0, columns=se_peakAssignments.index)
+        for peak in df_m.columns:
+            df_m.loc[se_peakAssignments.loc[peak].dropna().values, peak] = 1
+
+        df_m = df_m.loc[df_m.sum(axis=1) > 0]
+
+        Z1 = hierarchy.linkage(df_m, 'ward')
+        Z2 = hierarchy.linkage(df_m.T, 'ward')
+
+        O1 = hierarchy.dendrogram(Z1, no_plot=True, get_leaves=True)['leaves']
+        O2 = hierarchy.dendrogram(Z2, no_plot=True, get_leaves=True)['leaves']
+
+        df_m = df_m.iloc[O1]
+        df_m = df_m.T.iloc[O2].T
+
+        clusters1 = hierarchy.fcluster(Z1, t=nG, criterion='maxclust')[O1] - 1
+        clusters2 = hierarchy.fcluster(Z2, t=nE, criterion='maxclust')[O2] - 1
+
+        u1 = np.unique(clusters1, return_counts=True)[1]
+        u2 = np.unique(clusters2, return_counts=True)[1]
+
+        df_m.index = pd.MultiIndex.from_arrays([df_m.index, clusters1], names=['gene', 'cluster'])
+        df_m.columns = pd.MultiIndex.from_arrays(['E' + df_m.columns.get_level_values(0).str.split('Experiment ', expand=True).get_level_values(-1) + '.' + df_m.columns.get_level_values(1).astype(str), clusters2], names=['peak', 'cluster'])
+
+        ndict = dict()
+        res = dict()
+        for ci in df_m.index.levels[-1]:
+            for cj in df_m.columns.levels[-1]:
+                df_temp = df_m.xs(ci, level='cluster', axis=0).xs(cj, level='cluster', axis=1)
+                m = df_temp.values.mean()
+                if m >= fcutoff:
+                    #print(ci, cj, df_temp.shape, '\t', np.round(m, 2), '\t', cleanListString(sorted(df_temp.index.values.tolist())))
+                    res[(ci, cj)] = df_temp.shape[1]
+                    ndict[ci] = cleanListString(sorted(df_temp.index.values.tolist()))
+
+        se = pd.Series(res).groupby(level=0).sum()
+        se.name = 'frequency'
+
+        df = se.to_frame()
+        df['genes'] = pd.Series(se.index).replace(ndict).values
+        df['frequency'][:] = 0
+
+        for i, group in enumerate(df['genes'].values):
+            group = group.split(', ')
+            fractions = df_m.droplevel('cluster').loc[group].sum(axis=0) / len(group)
+            df['frequency'].iloc[i] = len(fractions[fractions >= fcutoff]) / df_m.shape[1]
+
+        df = df.sort_values(by='frequency', ascending=False)
+        print(df)
+        
+        df.to_excel(self.workingDir + 'All peaks %s. nG%s-nE%s.xlsx' % (variant, nG, nE), index=False)
+
+        return

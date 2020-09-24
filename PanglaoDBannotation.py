@@ -1,10 +1,48 @@
-import os
-import numpy as np
-import pandas as pd
-from io import *
+from commonFunctions import *
 
+from string import Template
 panglaoURL = Template('https://panglaodb.se/data_dl.php?sra=${SRA}&srs=${SRS}&filetype=R&datatype=readcounts')
 RDataFileName = lambda SRA, SRS: '%s%s.sparse.RData.h5' % (SRA, '_' + SRS if SRS!='notused' else '')
+
+def _selectCelltypeRecordH5(IndirName, fileHDF, samples, nMerge = 50):
+
+    samples = np.unique(list(zip(df_sel.index.get_level_values(0).values, df_sel.index.get_level_values(1).values)), axis=0)
+
+    for i, (SRA, SRS) in enumerate(samples):
+        print('\n', i, 'of', len(samples), SRA, SRS)
+
+        if KeyInStore('%s_%s' % (SRA, SRS), fileHDF):
+            print('Key is already in h5 ifle')
+            continue
+
+        fileClusterMemberships = '%s%s.seurat_clusters.txt' % (SRA, '_' + SRS if SRS!='notused' else '')
+        df_cell_to_cluster = pd.read_csv(os.path.join(IndirName, 'PanglaoDB', 'data', 'sample_clusters', fileClusterMemberships), delimiter=' ', index_col=0, header=None)[1]
+
+        clustersToKeep = df_sel.xs(key=SRA, level=0).xs(key=SRS, level=0).index.values
+        selectedCells = np.unique(df_cell_to_cluster[[(i in clustersToKeep) for i in df_cell_to_cluster.values]].index.values)
+
+        dirName = os.path.join('..', '..', 'Downloads', 'var', 'www', 'html', 'SRA', 'SRA.final')
+
+        df = readRDataFile('%s%s.sparse.RData' % (SRA, '_' + SRS if SRS!='notused' else ''), dirName)
+
+        if df is None:
+            print('Error reading df')
+
+            continue
+
+        df = df[selectedCells]
+        print('Selected cells:', df.shape)
+
+        print('Genes per cell:', (df!=0).sum(axis=0).median(), '\nReads per cell:', (df).sum(axis=0).median())
+        nParts = int(np.ceil(len(df.columns) / nMerge))
+        print(nParts)
+        dfm = pd.concat([df[part].sum(axis=1) for part in np.array_split(df.columns, nParts)], axis=1, sort=False)
+        dfm = dfm.loc[~dfm.index.duplicated(keep='first')]
+        print('Genes per pseudo-cell:', (dfm!=0).sum(axis=0).median(), '\nReads per pseudo-cell:', (dfm).sum(axis=0).median())
+
+        dfm.to_hdf(fileHDF, key='%s_%s' % (SRA, SRS), mode='a', complevel=4, complib='zlib')
+
+    return
 
 def getAnnotationsSummaryDf(dirName, saveToFile = True, printDf = False):
 

@@ -2,8 +2,8 @@ from commonFunctions import *
 
 # Begin: Part specific for each analyses ----------------------------------------------------------
 
-otherCaseDir = 'workflow/PanglaoDB EC all cells w21/Mus musculus/'
-workingDir = 'Heart_bootstrap_original_annotation/'
+otherCaseDir = 'results/workflow/PanglaoDB EC all cells w21/Mus musculus/'
+workingDir = 'results/Heart_bootstrap_original_annotation/'
 nCPUs = 2 if platform.system() == "Windows" else 10
 
 def prepareInputData():

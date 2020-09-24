@@ -63,10 +63,15 @@ def get_mean_std_cov_ofDataframe(df):
 
     return df
 
-def getGenesOfPeak(se, heightCutoff = 0.5, maxDistance = None):
+def getGenesOfPeak(se, peak=None, heightCutoff = 0.5, maxDistance = None):
 
     se /= se.max()
-    i0 = np.argmax(se.values)
+
+    if peak is None:
+        i0 = np.argmax(se.values)
+    else:
+        i0 = peak
+
     genes = [se.index[i0]]
 
     if heightCutoff is None:
@@ -99,6 +104,15 @@ def getGenesOfPeak(se, heightCutoff = 0.5, maxDistance = None):
             break
 
     return genes
+
+def getPeaks(se, threshold = 0.2, distance = 50):
+
+    se /= se.max()
+
+    peaks = scipy.signal.find_peaks(se.values, distance=distance)[0]
+    peaks = peaks[se[peaks] >= threshold]
+
+    return peaks
 
 def getDistanceOfBatch(args):
 
@@ -235,7 +249,7 @@ def binomialEnrichmentProbability(nx_obj, enriched_genes, target_genes = False, 
     
     if not isinstance(nx_obj, nx.Graph):
         if isinstance(nx_obj, str):
-            if not os.path.isfile('PCN.pklz'):
+            if not os.path.isfile('data/PCN.pklz'):
                 nx_obj = nx.read_edgelist(nx_obj).to_undirected()
                 write(nx_obj, 'PCN')
             else:

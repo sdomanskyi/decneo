@@ -40,7 +40,7 @@ warnings.simplefilter("ignore", NaturalNameWarning)
 if platform.system() == "Windows":
     RDataDirName = os.path.join('dev', 'PanglaoDBdata', '')
     MetadataDirName = os.path.join('dev', 'PanglaoDBdata', '')
-    processedDataDir = os.path.join('pr', '')
+    processedDataDir = os.path.join('data', 'pr', '')
 else:
     RDataDirName = '/mnt/research/piermarolab/data/PanglaoDBh5/Raw/'
     MetadataDirName = os.path.join('')

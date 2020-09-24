@@ -1,6 +1,6 @@
 from general import *
 
-Mouse_to_Human_HUGO_conversion = read('Mouse_to_Human_HUGO.gz', jsonFormat=True)
+Mouse_to_Human_HUGO_conversion = read('geneLists/Mouse_to_Human_HUGO.gz', jsonFormat=True)
 
 g4 = ['CD3D', 'CD28', 'CTLA4', 'PDCD1']
 
@@ -22,31 +22,31 @@ pubMedAngiogenesisHits = {'KDR': 1853, 'FLT1': 681, 'PDGFRB': 546, 'NRP1': 237, 
 gECs = gEC23[:18]
 gECi = gEC23[18:]
 
-receptorsListHugo_2555 = np.loadtxt('receptorsListHugo_2555.txt', dtype=str).tolist()
+receptorsListHugo_2555 = np.loadtxt('geneLists/receptorsListHugo_2555.txt', dtype=str).tolist()
 
 OSKM = ['POU5F1', 'SOX2', 'KLF4', 'MYC'] # OCT4, KLF4, SOX2, c-Myc
 TFmarkers = OSKM + ['NANOG', 'GLIS1', 'NR5A2', 'SALL4'] # from 10.1152/physrev.00039.2017
 
 if True:
-    TF = np.loadtxt('TF_1.01_HUGO.txt', dtype=str)
+    TF = np.loadtxt('geneLists/TF_1.01_HUGO.txt', dtype=str)
 else:
-    se = pd.read_excel('TranscriptionFactors_DatabaseExtract_v_1.01.xlsx', index_col='HGNC symbol', header=0)['Is TF?']
+    se = pd.read_excel('geneLists/TranscriptionFactors_DatabaseExtract_v_1.01.xlsx', index_col='HGNC symbol', header=0)['Is TF?']
     TF = np.unique(se[se == 'Yes'].index.values).tolist()
     import DigitalCellSorter
     Convert = DigitalCellSorter.DigitalCellSorter(matplotlibMode='TkAgg').gnc.Convert
     TF = np.unique(Convert(TF, 'alias', 'hugo', returnUnknownString=False))
-    np.savetxt('TF_1.01_HUGO.txt', TF, fmt='%s')
+    np.savetxt('geneLists/TF_1.01_HUGO.txt', TF, fmt='%s')
 
 
 def populateExternalPanelsData(var):
 
-    data = pd.read_excel('Rate.xlsx', header=0, index_col=0)['Rate']
+    data = pd.read_excel('geneLists/Rate.xlsx', header=0, index_col=0)['Rate']
     var.update({'Evolutionary rate': data.loc[~data.index.duplicated(keep='first')]})
 
-    data = pd.read_excel('Age.xlsx', header=0, index_col=0)['Age']
+    data = pd.read_excel('geneLists/Age.xlsx', header=0, index_col=0)['Age']
     var.update({'Evolutionary age': data.loc[~data.index.duplicated(keep='first')]})
 
-    data = pd.read_excel('positive-negative-GO.xlsx', sheet_name='Lists', index_col=0, header=0, usecols=[0,1,2])
+    data = pd.read_excel('geneLists/positive-negative-GO.xlsx', sheet_name='Lists', index_col=0, header=0, usecols=[0,1,2])
     var.update({'GOpositive': data['positive'].dropna().index.values.tolist()})
     var.update({'GOnegative': data['negative'].dropna().index.values.tolist()})
 

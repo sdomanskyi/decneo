@@ -105,30 +105,41 @@ if __name__ == '__main__':
 
     args = dict(genesOfInterest=TF, 
                 knownRegulators=TFmarkers, 
-                nCPUs=6 if platform.system()=="Windows" else 10, 
-                panels=['combo4avgs', 'fraction', 'binomial', 'markers', 'top50'], 
+                nCPUs=8 if platform.system()=="Windows" else 10, 
+                panels=['combo3avgs', 'combo4avgs', 'fraction', 'binomial', 'markers', 'top50'], 
                 nBootstrap=100, 
                 perEachOtherCase=True)
 
-    aHuman = Analysis(**dict(args, workingDir='ESC/McCracken_hESC_vs_day8/', otherCaseDir='ESC/Han_mESC_vs_mesenchyme/'))
-    aMouse = Analysis(**dict(args, workingDir='ESC/Han_mESC_vs_mesenchyme/', otherCaseDir='ESC/McCracken_hESC_vs_day8/'))
+    aHuman = Analysis(**dict(args, workingDir='results/ESC/McCracken_hESC_vs_day8/', otherCaseDir='results/ESC/Han_mESC_vs_mesenchyme/'))
+    aMouse = Analysis(**dict(args, workingDir='results/ESC/Han_mESC_vs_mesenchyme/', otherCaseDir='results/ESC/McCracken_hESC_vs_day8/'))
 
-    aHuman.prepareDEG(*prepareInputData_human_McCracken())
-    aHuman.preparePerBatchCase(exprCutoff=0.05)
-    aHuman.prepareBootstrapExperiments()
+    #aHuman.prepareDEG(*prepareInputData_human_McCracken())
+    #aHuman.preparePerBatchCase(exprCutoff=0.05)
+    #aHuman.prepareBootstrapExperiments()
 
-    aMouse.prepareDEG(*prepareInputData_mouse_Han())
-    aMouse.preparePerBatchCase(exprCutoff=0.005)
-    aMouse.prepareBootstrapExperiments()
+    #aMouse.prepareDEG(*prepareInputData_mouse_Han())
+    #aMouse.preparePerBatchCase(exprCutoff=0.005)
+    #aMouse.prepareBootstrapExperiments()
 
-    aHuman.analyzeBootstrapExperiments()
+    #aHuman.analyzeBootstrapExperiments()
     aMouse.analyzeBootstrapExperiments()
     aHuman.analyzeBootstrapExperiments()
             
     aHuman.reanalyzeMain()
+    aHuman.analyzeCombinationVariant('Avg combo3avgs')
     aHuman.analyzeCombinationVariant('Avg combo4avgs')
-    aHuman.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=10)
 
     aMouse.reanalyzeMain()
+    aMouse.analyzeCombinationVariant('Avg combo3avgs')
     aMouse.analyzeCombinationVariant('Avg combo4avgs')
-    aMouse.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=10)
+
+    #aHuman.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=10)
+    #aHuman.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=10)
+    #aMouse.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=10)
+    #aMouse.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=10)
+
+    aHuman.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=8, nE=30, fcutoff=0.5, width=50)
+    aHuman.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=8, nE=30, fcutoff=0.5, width=50)
+
+    aMouse.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=8, nE=30, fcutoff=0.5, width=50)
+    aMouse.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=8, nE=30, fcutoff=0.5, width=50)

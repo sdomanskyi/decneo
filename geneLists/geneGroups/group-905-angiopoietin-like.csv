@@ -1,0 +1,10 @@
+sep=,
+"HGNC ID (gene)","Approved symbol","Approved name","Previous symbols","Aliases","Chromosome"
+"HGNC:489","ANGPTL1","angiopoietin like 1","ANGPT3","ANG3,AngY,ARP1","1q25.2"
+"HGNC:490","ANGPTL2","angiopoietin like 2","","ARP2,HARP","9q33.3"
+"HGNC:491","ANGPTL3","angiopoietin like 3","ANGPT5","","1p31.3"
+"HGNC:16039","ANGPTL4","angiopoietin like 4","","pp1158,PGAR,ARP4,HFARP,FIAF,NL2","19p13.2"
+"HGNC:19705","ANGPTL5","angiopoietin like 5","","","11q22.1"
+"HGNC:23140","ANGPTL6","angiopoietin like 6","","ARP5,AGF","19p13.2"
+"HGNC:24078","ANGPTL7","angiopoietin like 7","","CDT6,AngX","1p36.22"
+"HGNC:24933","ANGPTL8","angiopoietin like 8","C19orf80","TD26,RIFL","19p13.2"

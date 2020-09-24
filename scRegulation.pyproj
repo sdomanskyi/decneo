@@ -1,0 +1,86 @@
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>5be516c8-717f-4999-9d98-1683a49ddf8d</ProjectGuid>
+    <ProjectHome>
+    </ProjectHome>
+    <StartupFile>analysisPipeline.py</StartupFile>
+    <SearchPath>
+    </SearchPath>
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <Name>scRegulation</Name>
+    <RootNamespace>Endothelial</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="dev\analysisPipelineApplication.py" />
+    <Compile Include="dev\deprecated\bootstrapChoroid_remapped.py" />
+    <Compile Include="bootstrapChoroid.py" />
+    <Compile Include="bootstrapESC.py" />
+    <Compile Include="bootstrapHeart.py" />
+    <Compile Include="dev\deprecated\choroidCorrelationAnalysis.py" />
+    <Compile Include="analysisPipeline.py" />
+    <Compile Include="dev\deprecated\bootstrapChoroid_samples.py" />
+    <Compile Include="dev\crossProject\forDCS_anomaly.py" />
+    <Compile Include="general.py" />
+    <Compile Include="dev\deprecated\deprecated.py" />
+    <Compile Include="genes.py" />
+    <Compile Include="dev\deprecated\commonOldPart.py" />
+    <Compile Include="dev\temp_dev\otherCellTypes - Copy.py" />
+    <Compile Include="dev\otherCelltypes\otherCellTypes.py" />
+    <Compile Include="dev\eye\eye_extract_markers.py" />
+    <Compile Include="dev\eye\eye.py" />
+    <Compile Include="EndothelialAlona.py" />
+    <Compile Include="dev\deprecated\Voigt_ttest.py" />
+    <Compile Include="dev\deprecated\plotlyHeatmapDendrogram.py" />
+    <Compile Include="dev\temp_dev\scrap.py" />
+    <Compile Include="PanglaoDBttestDCS.py" />
+    <Compile Include="dev\temp_dev\subsampleEC.py" />
+    <Compile Include="EndothelialDCS.py" />
+    <Compile Include="dev\crossProject\PanglaoDBconsensus10annotate.py" />
+    <Compile Include="dev\otherCelltypes\Tcell.py" />
+    <Compile Include="dev\app.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="dev\deprecated\analysisOfEndothelial.py" />
+    <Compile Include="dev\Cao_cutout.py" />
+    <Compile Include="dev\deprecated\allGenesAllCells.py" />
+    <Compile Include="PanglaoDBannotateWithDCS.py" />
+    <Compile Include="dev\deprecated\markingDropouts.py" />
+    <Compile Include="dev\processSCdata.py" />
+    <Compile Include="dev\deprecated\choroidCascade.py" />
+    <Compile Include="dev\crossProject\mList.py" />
+    <Compile Include="dev\PanglaoDBmergeEndothelial.py" />
+    <Compile Include="dev\PanglaoDBannotateEndothelial.py" />
+    <Compile Include="PanglaoDBannotation.py" />
+    <Compile Include="commonFunctions.py">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="dev\" />
+    <Folder Include="dev\deprecated\" />
+    <Folder Include="dev\crossProject\" />
+    <Folder Include="dev\eye\" />
+    <Folder Include="dev\otherCelltypes\" />
+    <Folder Include="dev\temp_dev\" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+  <!-- Uncomment the CoreCompile target to enable the Build command in
+       Visual Studio and specify your pre- and post-build commands in
+       the BeforeBuild and AfterBuild targets below. -->
+  <!--<Target Name="CoreCompile" />-->
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+</Project>
