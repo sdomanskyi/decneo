@@ -251,9 +251,9 @@ def binomialEnrichmentProbability(nx_obj, enriched_genes, target_genes = False, 
         if isinstance(nx_obj, str):
             if not os.path.isfile('data/PCN.pklz'):
                 nx_obj = nx.read_edgelist(nx_obj).to_undirected()
-                write(nx_obj, 'PCN')
+                write(nx_obj, 'data/PCN')
             else:
-                nx_obj = read('PCN')
+                nx_obj = read('data/PCN')
         else:
             print("Error: nx_obj needs to be a networkx graph or a network edgelist file name")
             return

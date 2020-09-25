@@ -35,7 +35,6 @@ import json
 
 from tables.exceptions import NaturalNameWarning
 warnings.simplefilter("ignore", NaturalNameWarning)
-#print('Ignoring any warnings of type: NaturalNameWarning')
 
 if platform.system() == "Windows":
     RDataDirName = os.path.join('dev', 'PanglaoDBdata', '')
@@ -43,7 +42,7 @@ if platform.system() == "Windows":
     processedDataDir = os.path.join('data', 'pr', '')
 else:
     RDataDirName = '/mnt/research/piermarolab/data/PanglaoDBh5/Raw/'
-    MetadataDirName = os.path.join('')
+    MetadataDirName = '/mnt/research/piermarolab/Sergii/'
     processedDataDir = '/mnt/research/piermarolab/Sergii/processedDataDir/'
     
 def write(data, fileName, jsonFormat = False):

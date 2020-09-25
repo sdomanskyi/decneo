@@ -138,7 +138,8 @@ class Analysis():
 
             for saveSubDir in saveSubDirs:
                 try:
-                    print('\n', saveSubDir, flush=True)
+                    print(saveSubDir, end='\t', flush=True)
+                    #print('\n', saveSubDir, flush=True)
                     if not os.path.exists(os.path.join(self.bootstrapDir, saveSubDir)):
                         os.makedirs(os.path.join(self.bootstrapDir, saveSubDir))
 
@@ -149,16 +150,16 @@ class Analysis():
 
                     np.savetxt(os.path.join(self.bootstrapDir, saveSubDir, 'batches.txt'), batches, fmt='%s')
 
-                    print('\tAggregating', flush=True)
+                    #print('\tAggregating', flush=True)
                     df_measure_temp = pd.Series(data=np.nanmedian(df_measure[batches].values.copy(), axis=1, overwrite_input=True), index=df_measure.index)
         
-                    print('\tUnstacking', flush=True)
+                    #print('\tUnstacking', flush=True)
                     df_measure_temp = df_measure_temp.unstack(0)
 
-                    print('\tRecording', flush=True)
+                    #print('\tRecording', flush=True)
                     df_measure_temp.to_hdf(os.path.join(self.bootstrapDir, saveSubDir, self.metricsFile), key=self.majorMetric, mode='a', complevel=4, complib='zlib')
 
-                    print('\tPreparing gene stats')
+                    #print('\tPreparing gene stats')
                     df_fraction_temp = df_fraction[batches]
                     df_fraction_temp.columns = df_fraction_temp.columns + '_' + np.array(range(len(df_fraction_temp.columns))).astype(str)
                     df_fraction_temp = df_fraction_temp.mean(axis=1)
@@ -184,6 +185,8 @@ class Analysis():
 
                 except Exception as exception:
                     print(exception)
+
+            print(flush=True)
 
         except Exception as exception:
             print(exception)
