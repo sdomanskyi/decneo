@@ -322,7 +322,7 @@ class Analysis():
             peaksLists = []
             experiments = []
             for experiment in np.unique(df_temp.index.get_level_values('experiment')):
-                se = df_temp.xs(experiment, level='experiment', axis=0)
+                se = df_temp.xs(experiment, level='experiment', axis=0).xs('species', level='species', axis=0)
                 genesInHalfPeak = getGenesOfPeak(se)
 
                 peaksListsMerged.extend(genesInHalfPeak)
@@ -376,6 +376,30 @@ class Analysis():
 
         return df_res
 
+    def _forScramble(self, args):
+
+        workingDir, measures, df, N, maxDistance, halfWindowSize, j = args
+
+        np.random.seed(j)
+
+        allGenes = df.index.values.copy()
+
+        listsNonmerged = []
+        for i in range(N):
+            np.random.shuffle(allGenes)
+
+            data = np.zeros(len(allGenes))
+            for measure in measures:
+                data += movingAverageCentered(normSum1(df[measure].loc[allGenes]), halfWindowSize, looped=False)
+
+            data = movingAverageCentered(data, halfWindowSize, looped=False)
+
+            listsNonmerged.append(getGenesOfPeak(pd.Series(index=allGenes, data=data), maxDistance=maxDistance))
+
+        pd.Series(listsNonmerged).to_hdf(workingDir + '%s.h5' % j, key='df')
+
+        return
+
     def scramble(self, measures, subDir = '', N = 10**4, M = 20):
 
         df = pd.read_excel(os.path.join(self.bootstrapDir + 'All/dendrogram-heatmap-correlation-data.xlsx'), index_col=0, header=0, sheet_name='Cluster index')
@@ -389,28 +413,11 @@ class Analysis():
 
         # Run the randomization and prepare results dataframe
         if True:
-            allGenes = df.index.values
-
             print('\nCalculating chunks', flush=True)
-            for j in range(M):
-                listsNonmerged = []
-                for i in range(N):
-                    if i % 10**3 == 0:
-                        print(j, i, end=' ', flush=True)
-
-                    np.random.shuffle(allGenes)
-
-                    data = np.zeros(len(allGenes))
-                    for measure in measures:
-                        data += movingAverageCentered(normSum1(df[measure].loc[allGenes]), 10, looped=False)
-
-                    data = movingAverageCentered(data, 10, looped=False)
-
-                    listsNonmerged.append(getGenesOfPeak(pd.Series(index=allGenes, data=data), maxDistance=25))
-
-                print()
-
-                pd.Series(listsNonmerged).to_hdf(workingDir + '%s.h5' % j, key='df')
+            pool = multiprocessing.Pool(processes=self.nCPUs)
+            pool.map(self._forScramble, [(workingDir, measures, df.copy(), N, 25, 10, j) for j in range(M)])
+            pool.close()
+            pool.join()
 
             print('\nCombining chunks', flush=True)
             dfs = []
@@ -422,12 +429,7 @@ class Analysis():
 
             print('\nAligning genes', flush=True)
             df = pd.DataFrame(index=range(len(dfs)), columns=np.unique(dfs.values.flatten()), data=False, dtype=np.bool_).drop('RemoveNaN', axis=1)
-            for i in df.index:
-                if i % 10**3 == 0:
-                    print(i, end=' ', flush=True)
-
-                df.iloc[i, :] = np.isin(df.columns.values, dfs.iloc[i, :])
-
+            df[:] = (df.columns.values==dfs.values[..., None]).any(axis=1)
             print(df)
 
             print('\nRecording', flush=True)
