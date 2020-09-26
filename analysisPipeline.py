@@ -951,7 +951,7 @@ class Analysis():
 
                 if not noAverage:
                     ax.plot(range(len(clusters)), data_avg, linewidth=1.0, color='coral', alpha=1.0)
-                    ax.text(0.999, 0.95, 'window = %s' % (2*halfWindowSize + 1), c='coral', ha='right', va='top', transform=ax.transAxes, fontsize=3)
+                    ax.text(0.999, 0.95, 'window = %s' % (2*halfWindowSize + 1), color='coral', ha='right', va='top', transform=ax.transAxes, fontsize=3)
 
                 nandata = np.isnan(data)
                 if np.sum(nandata) > 0:
@@ -1187,7 +1187,10 @@ class Analysis():
 
     def reanalyzeMain(self, **kwargs):
 
-        self.analyzeCase(None, toggleAdjustText=True, dpi=300, suffix='All', saveDir=os.path.join(self.bootstrapDir, 'All/'), printStages=True, toggleCalculateMajorMetric=False, toggleExportFigureData=True, toggleCalculateMeasures=False, externalPanelsData=dict(externalPanelsData, conservedGenes=pd.read_excel(os.path.join(self.bootstrapDir, 'All', 'comparison.xlsx'), index_col=1, header=0)['Inter-measures.T50_common_count']), **kwargs)
+        try:
+            self.analyzeCase(None, toggleAdjustText=True, dpi=300, suffix='All', saveDir=os.path.join(self.bootstrapDir, 'All/'), printStages=True, toggleCalculateMajorMetric=False, toggleExportFigureData=True, toggleCalculateMeasures=False, externalPanelsData=dict(externalPanelsData, conservedGenes=pd.read_excel(os.path.join(self.bootstrapDir, 'All', 'comparison.xlsx'), index_col=1, header=0)['Inter-measures.T50_common_count']), **kwargs)
+        except Exception as exception:
+            print(exception)
 
         return
 
