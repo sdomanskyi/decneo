@@ -1188,7 +1188,12 @@ class Analysis():
     def reanalyzeMain(self, **kwargs):
 
         try:
+            print('Re-analyzing all-data case', flush=True)
+            
             self.analyzeCase(None, toggleAdjustText=True, dpi=300, suffix='All', saveDir=os.path.join(self.bootstrapDir, 'All/'), printStages=True, toggleCalculateMajorMetric=False, toggleExportFigureData=True, toggleCalculateMeasures=False, externalPanelsData=dict(externalPanelsData, conservedGenes=pd.read_excel(os.path.join(self.bootstrapDir, 'All', 'comparison.xlsx'), index_col=1, header=0)['Inter-measures.T50_common_count']), **kwargs)
+
+            shutil.copyfile(os.path.join(self.bootstrapDir, 'All', 'All dendrogram-heatmap-correlation.png'), os.path.join(self.workingDir, 'results.png'))
+
         except Exception as exception:
             print(exception)
 
