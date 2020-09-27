@@ -44,9 +44,9 @@ if __name__ == '__main__':
 
     args = dict(genesOfInterest=receptorsListHugo_2555, 
                 knownRegulators=gEC23, 
-                nCPUs=4 if platform.system()=="Windows" else 10, 
+                nCPUs=4 if platform.system()=="Windows" else 8, 
                 panels=['combo3avgs', 'combo4avgs', 'fraction', 'binomial', 'markers', 'top50'], 
-                nBootstrap=100, 
+                nBootstrap=15, 
                 perEachOtherCase=False)
 
     mousePanglaoAllBatchesDir = '/mnt/research/piermarolab/Sergii/Endothelial by PanglaoDB definition/EC all bootstrap 100 w21/Mus musculus/All/'
@@ -64,7 +64,5 @@ if __name__ == '__main__':
 
     an.analyzeCombinationVariant('Avg combo3avgs')
     an.analyzeCombinationVariant('Avg combo4avgs')
-    an.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=8, nE=30, fcutoff=0.5, width=50)
-    an.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=8, nE=30, fcutoff=0.5, width=50)
-    an.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=20)
-    an.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=20)  
+    an.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=10)
+    an.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=10)  

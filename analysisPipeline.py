@@ -114,7 +114,7 @@ class Analysis():
 
     def preparePerBatchCase(self, **kwargs):
 
-        self.analyzeCase(pd.read_hdf(self.dataSaveName, key='df'), suffix='all', saveDir=self.byBatchesDir, toggleCalculateMajorMetric=True, toggleExportFigureData=True, toggleCalculateMeasures=True, toggleGroupBatches=False, **kwargs)
+        self.analyzeCase(pd.read_hdf(self.dataSaveName, key='df'), suffix='all', saveDir=self.byBatchesDir, toggleCalculateMajorMetric=True, toggleExportFigureData=True, toggleCalculateMeasures=True, toggleGroupBatches=False, toggleAdjustText=False, noPlot=True, **kwargs)
 
         return
 
@@ -1195,6 +1195,12 @@ class Analysis():
         return
 
     def analyzeAllPeaksOfCombinationVariant(self, variant, nG = 8, nE = 30, fcutoff = 0.5, width = 50):
+
+        '''
+        Example:
+        an.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=8, nE=30, fcutoff=0.5, width=50)
+        an.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=8, nE=30, fcutoff=0.5, width=50)
+        '''
 
         def getPeaksLists(df_temp):
 
