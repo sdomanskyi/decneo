@@ -197,8 +197,19 @@ class Analysis():
 
         majorMetric = self.majorMetric
 
-        df1 = pd.read_hdf(os.path.join(saveDir1, 'per-gene-measures-%s.h5' % majorMetric), key='df')
-        df2 = pd.read_hdf(os.path.join(saveDir2, 'per-gene-measures-%s.h5' % majorMetric), key='df')
+        try:
+            df1 = pd.read_hdf(os.path.join(saveDir1, 'per-gene-measures-%s.h5' % majorMetric), key='df')
+            df2 = pd.read_hdf(os.path.join(saveDir2, 'per-gene-measures-%s.h5' % majorMetric), key='df')
+        except Exception as exception:
+            print('ERROR reading h5 in compareTwoCases:', exception, '\nTrying reading XLSX format')
+
+            try:
+                df1 = pd.read_excel(os.path.join(saveDir1, 'per-gene-measures-%s.xlsx' % majorMetric), header=0, index_col=[0,1]).fillna('')
+                df2 = pd.read_excel(os.path.join(saveDir2, 'per-gene-measures-%s.xlsx' % majorMetric), header=0, index_col=[0,1]).fillna('')
+            except Exception as exception:
+                print('ERROR reading XLSX:', exception)
+
+                return
 
         n23_1 = len(np.intersect1d(np.unique(df1.index.get_level_values('gene').values), gEC23))
         n23_2 = len(np.intersect1d(np.unique(df2.index.get_level_values('gene').values), gEC23))
