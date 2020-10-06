@@ -1,9 +1,32 @@
+''' Common functions used in analysis pipeline 
+'''
+
 from general import *
 from genes import *
 
 cleanListString = lambda c: str(list(c)).replace(' ', '').replace("'", '').replace(']', '').replace('[', '').replace(',', ', ')
 
 def movingAverageCentered(a, halfWindowSize, looped = False):
+
+    '''Function used ...
+        
+    Parameters:
+        a: ndarray
+            //
+
+        halfWindowSize: int
+            //
+
+        looped: boolean, Default False
+            //
+
+    Returns:
+        asm: ndarray
+
+
+    Usage:
+        movingAverageCentered(a, halfWindowSize, looped)
+    '''
 
     '''
     An intuitive way:
@@ -49,6 +72,19 @@ def movingAverageCentered(a, halfWindowSize, looped = False):
 
 def get_mean_std_cov_ofDataframe(df):
 
+    '''Calculate mean, standard deviation, and covariance 
+        
+    Parameters:
+        df: pandas.DataFrame
+            Data with bootstrap experiment data 
+        
+    Returns:
+        DataFrame with columns expressing mean, standard deviation, and covariance of input columns
+
+    Usage:
+        get_mean_std_cov_ofDataFrame(df)
+    '''
+
     se_mean = df.mean(axis=1)
     se_std = df.std(axis=1)
 
@@ -64,6 +100,28 @@ def get_mean_std_cov_ofDataframe(df):
     return df
 
 def getGenesOfPeak(se, peak=None, heightCutoff = 0.5, maxDistance = None):
+
+    '''Finds peak region of greatest value
+        
+    Parameters:
+        se: Series
+            Normalized aggregated data 
+
+        peak: ndarray, Default None
+            Array of indices of max values in data
+
+        heighCutoff: float, Default 0.5
+            Height/value considered to be in peak 
+
+        maxDistance: int, Default None
+            Maximum distance away considered to be in peak
+        
+    Returns:
+        Genes appearing the peak 
+
+    Usage:
+        getGenesOfPeak(se)
+    '''
 
     se /= se.max()
 
@@ -107,6 +165,25 @@ def getGenesOfPeak(se, peak=None, heightCutoff = 0.5, maxDistance = None):
 
 def getPeaks(se, threshold = 0.2, distance = 50):
 
+    '''Finds peak regions 
+        
+    Parameters:
+        se: Series
+            Normalized aggregated data 
+
+        threshold: float, Default 0.2
+            Minimum value to be considered peak 
+
+        distance: int, Default 50
+            Minimum horizontal distance between peaks 
+
+    Returns:
+        Indices of peaks satisfying input conditions 
+
+    Usage:
+        getPeaks(se)
+    '''
+
     se /= se.max()
 
     peaks = scipy.signal.find_peaks(se.values, distance=distance)[0]
@@ -115,6 +192,45 @@ def getPeaks(se, threshold = 0.2, distance = 50):
     return peaks
 
 def getDistanceOfBatch(args):
+
+    '''Calculate correlation distance of metric for given batch 
+
+    Parameters:
+        args: tuple
+            Tuple that contains: 
+                batch: str
+                    Batch identifier
+                    
+                df_sample: pandas.DataFrame
+                    Dataframe with expression data 
+
+                metric: str
+                    Metric name (e.g. 'correlation') 
+
+                genes: list or 1d numpy.array
+                    List of genes of interest
+
+                minSize: int
+                    Minimum size of input pandas.DataFrame
+
+                cutoff: float
+                    Cutoff for percent expression of input data 
+
+    Returns:
+        tuple:
+            Results in form of a tuple:
+                pandas.Series 
+                    Series containting correlation distance 
+
+                str
+                    Batch identifier 
+
+                pandas.Series
+                    Series of genes 
+
+    Usage:
+        getDistanceOfBatch
+    '''
 
     batch, df_sample, metric, genes, minSize, cutoff = args
 
@@ -145,6 +261,34 @@ def getDistanceOfBatch(args):
 
 def reindexSeries(args):
 
+    '''Assists in reindexing Series 
+
+    Parameters:
+        args: tuple
+            Tuple that contains: 
+                se: pandas.Series
+                    Series to perform reindexing 
+                    
+                batch: str
+                    Batch identifier 
+
+                index: list or 1d numpy.array
+                    List of genes 
+
+    Returns:
+        tuple:
+            Results in form of a tuple:
+                pandas.Series
+                    Reindexed pandas.Series
+
+                str
+                    Batch identifier
+
+
+    Usage:
+        reindexSeries
+    '''
+
     se, batch, index = args
 
     print('\t', batch, end=' ', flush=True)
@@ -153,6 +297,44 @@ def reindexSeries(args):
     return se, batch
 
 def get_df_distance(df, metric = 'correlation', genes = [], analyzeBy = 'batch', minSize = 10, groupBatches = True, pname = None, cutoff = 0.05, nCPUs = 4):
+
+    '''Calculate distance measurement
+        
+    Parameters:
+        df: pandas.DataFrame
+            Dataframe with expression data 
+
+        metric: str, Default 'correlation'
+            Metric name (e.g. 'correlation') 
+
+        genes: list, Default []
+            List of genes for analysis
+
+        analyzeBy: str, Default 'batch'
+            Level to analyze data by (e.g. batches)
+
+        minSize: int, Default 10
+            Minimum size of input pandas.DataFrame
+
+        groupBatches: boolean, Default True 
+            // TEXT //
+
+        pname: Default None
+            // TEXT //
+
+        cutoff: float, Default 0.05
+            Cutoff for percent expression of input data 
+
+        nCPUs: int, Default 4
+            Number of CPUs to use for multiprocessing
+
+    Returns:
+        pandas.DataFrame 
+
+
+    Usage:
+        get_df_distance(df)
+    '''
 
     print('\tMetric:', metric, '\tAnalyzeBy:', analyzeBy, '\tminSize:', minSize)
     print('df_expr', '%1.1fMb'%(sys.getsizeof(df) / 1024**2), flush=True)
@@ -205,6 +387,22 @@ def get_df_distance(df, metric = 'correlation', genes = [], analyzeBy = 'batch',
 
 def reduce(vIn, size = 100):
 
+    ''' TEXT
+        
+    Parameters:
+        vIn: TEXT
+            TEXT
+
+        size: int, Default 100
+            TEXT
+        
+    Returns:
+        TEXT
+
+    Usage:
+        reduce(vIn)
+    '''
+
     v = vIn.copy()
 
     wh = np.where(~np.isnan(v))[0]
@@ -219,6 +417,23 @@ def reduce(vIn, size = 100):
     return v
 
 def metric_euclidean_missing(u, v):
+
+    '''Calculate euclidean distance between two arrays for metric 'euclidean_missing'
+        
+    Parameters:
+        u: ndarray
+            //
+
+        v: ndarray
+            //
+        
+    Returns:
+        ndarray 
+            Non-negative squareroot of the array, element-wise
+
+    Usage:
+        metric_euclidean_missing(u, v)
+    '''
 
     wh = np.where(~np.isnan(u * v))[0]
                     
@@ -299,6 +514,21 @@ def binomialEnrichmentProbability(nx_obj, enriched_genes, target_genes = False, 
 
 def getROC(data):
 
+    '''Calculate axes of ROC (false positive rates and true positive rates)
+        
+    Parameters:
+        data: TEXT
+            TEXT
+        
+    Returns:
+        np.array 
+            Array holding false positive rates
+        np.array
+            Array holding true positive rates
+    Usage:
+        getROC(data)
+    '''
+
     fpr = []
     for i in range(len(data)):
         FP = np.sum(data[:i] == False)
@@ -317,14 +547,28 @@ def clusterData(data, n_clusters = None, method = 'Spectral', random_state = Non
 
     '''Return cluster labels
     
-    data is np.array of shape (features, objects)
+    Parameters: 
+        data: np.array 
+            Array of shape (features, objects)
 
-    method can be
-    1 or 'Agglomerative'
-    2 or 'Spectral'
-    3 or 'KMeans'
+        n_clusters: int, Default None 
+            Number of desired clusters 
 
-    Methods 2 and 3 initial state is random, unless random_state is specified
+        method: str or int , Default 'Spectral'
+            Method used cluster the data 
+            Options: 1 or 'Agglomerative', 2 or 'Spectral', 3 or 'KMeans'
+
+        random_state: int, Default None
+            Used to determine randomness deterministic 
+            Methods 2 and 3 initial state is random, unless random_state is specified
+
+    Returns:
+        list
+            List containing cluster assignment of each object
+
+    Usage:
+        clusterData(data)
+
     '''
 
     if n_clusters is None:
@@ -351,7 +595,27 @@ def clusterData(data, n_clusters = None, method = 'Spectral', random_state = Non
 
 def testNumbersOfClusters(data, text = '', n_min = 2, n_max = 20, k = 10):
 
-    '''Test different number of clusters with KMeans, claclulate ARI for each'''
+    '''Test different number of clusters with KMeans, calculate ARI for each
+    
+    Parameters: 
+        data: np.array 
+            Array of shape (features, objects)
+
+        text: str, Default ''
+            //
+
+        n_min: int, Default 2
+            //
+
+        n_max: int, Default 20 
+            //
+
+        k: int, Default 10 
+            //
+
+    Usage: 
+        testNumbersofClusters(data)
+    '''
 
     print()
 
