@@ -1,3 +1,6 @@
+'''  Holds genes used in scRegulation and converts genes to the correct format
+'''
+
 from general import *
 
 Mouse_to_Human_HUGO_conversion = read('geneLists/Mouse_to_Human_HUGO.gz', jsonFormat=True)
