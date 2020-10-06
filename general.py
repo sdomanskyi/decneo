@@ -1,3 +1,6 @@
+''' Imports all necessary packages and contains functions to read from and write to binary files  
+'''
+
 import os
 import sys
 import shutil
@@ -48,7 +51,19 @@ else:
     
 def write(data, fileName, jsonFormat = False):
     
-    '''Pickle object into a file.'''
+    '''Pickle object into a (binary) file
+        
+    Parameters:
+        data: any Pyhton object, e.g. list, dictionary, file, method, variable, etc.
+        fileName: path and name of the file to store binary data in
+        
+    Returns:
+        None
+        
+    Usage:
+        data = [['A', 'B', 'C'], pd.DataFrame()]
+        write(data, os.path.join('some dir 1', 'some dir 2', 'File with my data'))
+    '''
     
     if jsonFormat:
         with gzip.GzipFile(fileName, 'w') as tempFile:
@@ -67,7 +82,17 @@ def write(data, fileName, jsonFormat = False):
 
 def read(fileName, jsonFormat = False):
 
-    '''Unpickle object from a file.'''
+    '''Unpickle object from a (binary) file
+
+    Parameters:
+        fileName: path and name of the file with binary data stored in
+
+    Returns:
+        Data stored in the provided file
+        
+    Usage:
+        read(os.path.join('some dir 1', 'some dir 2', 'File with my data'))
+    '''
 
     if jsonFormat:
         with gzip.GzipFile(fileName, 'r') as tempFile:
