@@ -637,7 +637,7 @@ class Analysis():
 
             listsNonmerged.append(getGenesOfPeak(pd.Series(index=allGenes, data=data), maxDistance=maxDistance))
 
-        pd.Series(listsNonmerged).to_hdf(workingDir + '%s.h5' % j, key='df')
+        pd.Series(listsNonmerged).to_pickle(workingDir + '%s' % j)
 
         return
 
@@ -687,7 +687,7 @@ class Analysis():
             print('\nCombining chunks', flush=True)
             dfs = []
             for j in range(M):
-                dfs.append(pd.read_hdf(workingDir + '%s.h5' % j, key='df').apply(pd.Series))
+                dfs.append(pd.read_pickle(workingDir + '%s' % j).apply(pd.Series))
                 print(j, end=' ', flush=True)
 
             dfs = pd.concat(dfs, axis=0, sort=False).reset_index(drop=True).replace(np.nan, 'RemoveNaN')
@@ -701,7 +701,7 @@ class Analysis():
             df.to_hdf(workingDir + 'combined_%s_aligned.h5' % M, key='df', mode='a', complevel=4, complib='zlib')
 
             for j in range(M):
-                os.remove(workingDir + '%s.h5' % j)
+                os.remove(workingDir + '%s' % j)
 
         # Save and plot counts distribution
         if True:
