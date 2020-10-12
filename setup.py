@@ -37,15 +37,16 @@ setup(
         ],
     python_requires='>=3',
     install_requires=[
-        'numpy>=1.16.4',
-        'pandas>=0.24.2',
+        'numpy>=1.19.1',
+        'pandas>=1.0.1',
         'patsy>=0.5.1',
         'xlrd>=1.2.0',
         'openpyxl>=3.0.3',
-        'tables>=3.5.1',
-        'scipy>=1.3.0',
-        'matplotlib>=3.1.0',
-        'scikit-learn>=0.21.2',
+        'tables>=3.6.1',
+        'scipy>=1.4.1',
+        'matplotlib>=3.1.3',
+        'scikit-learn>=0.22.1',
+        'networkx>=2.4',
         'adjustText>=0.7.3'],
     zip_safe=False
 )

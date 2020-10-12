@@ -1,5 +1,5 @@
-from commonFunctions import *
-from analysisPipeline import Analysis
+from scRegulation.commonFunctions import *
+from scRegulation.analysisPipeline import Analysis
 
 def preparePerSampleDEgenes():
 
@@ -16,7 +16,7 @@ def preparePerSampleDEgenes():
 
     # Prepare index of all cells
     if False:
-        from PanglaoDBannotation import getAnnotationsSummaryDf
+        from .PanglaoDBannotation import getAnnotationsSummaryDf
 
         df_cell_type_annotations = getAnnotationsSummaryDf(MetadataDirName)[['Cell type annotation', 'Species']]
         df_cell_type_annotations = df_cell_type_annotations.set_index(['Cell type annotation', 'Species'], append=True)

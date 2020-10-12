@@ -16,16 +16,18 @@ import matplotlib
 from matplotlib import cm
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as path_effects
-import plotly.graph_objects as go
-import plotly.figure_factory as ff
-import plotly.express as px
-from plotly.offline import plot as plot_offline
-from plotly.subplots import make_subplots
+
+#import plotly.graph_objects as go
+#import plotly.figure_factory as ff
+#import plotly.express as px
+#from plotly.offline import plot as plot_offline
+#from plotly.subplots import make_subplots
+
 from sklearn.cluster import AgglomerativeClustering, KMeans, SpectralCoclustering
 from sklearn.metrics import adjusted_rand_score, f1_score, roc_curve, auc, roc_auc_score
 from scipy.cluster import hierarchy
 from adjustText import adjust_text
-from sknetwork.hierarchy import Paris, LouvainHierarchy
+#from sknetwork.hierarchy import Paris, LouvainHierarchy
 import copy
 import networkx as nx
 import multiprocessing

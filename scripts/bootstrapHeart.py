@@ -1,4 +1,5 @@
-from commonFunctions import *
+from scRegulation.commonFunctions import *
+
 
 # Begin: Part specific for each analyses ----------------------------------------------------------
 

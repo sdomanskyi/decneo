@@ -1,9 +1,9 @@
-from commonFunctions import *
-from analysisPipeline import Analysis
+from scRegulation.commonFunctions import *
+from scRegulation.analysisPipeline import Analysis
 
 def prepareDEGforTissues(dataSaveName, species, tissues, preprocessedDataPath = '/mnt/research/piermarolab/Sergii/Endothelial by PanglaoDB definition/'):
 
-    from PanglaoDBannotation import getAnnotationsSummaryDf
+    from .PanglaoDBannotation import getAnnotationsSummaryDf
     se_anno = getAnnotationsSummaryDf(MetadataDirName)[['Tissue origin of the sample', 'Species']].droplevel('Cluster index').set_index('Species', append=True)[['Tissue origin of the sample']]
     se_anno.columns = ['tissue']
     se_anno = se_anno.loc[~se_anno.index.duplicated(keep='first')]

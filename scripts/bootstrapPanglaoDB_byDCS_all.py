@@ -1,5 +1,5 @@
-from commonFunctions import *
-from analysisPipeline import Analysis
+from scRegulation.commonFunctions import *
+from scRegulation.analysisPipeline import Analysis
 
 def preparePerSampleDEgenes():
 
