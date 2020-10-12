@@ -43,6 +43,20 @@ else:
 
 def populateExternalPanelsData(var):
 
+    '''Populates and updates external panel data  
+        
+    Parameters:
+        var: dict 
+            Dictionary to add and update panel information
+
+    Returns: 
+        dict 
+            Updated input dictionary 
+
+    Usage:
+        populateExternalPanelsData(var)
+    '''
+
     data = pd.read_excel('geneLists/Rate.xlsx', header=0, index_col=0)['Rate']
     var.update({'Evolutionary rate': data.loc[~data.index.duplicated(keep='first')]})
 
