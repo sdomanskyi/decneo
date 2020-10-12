@@ -1,11 +1,11 @@
 ''' File holding Analysis class 
 '''
 
-from commonFunctions import *
+from .commonFunctions import *
 
 class Analysis():
 
-     '''Class of analysis and visualization functions for scRegulation'''
+    '''Class of analysis and visualization functions for scRegulation'''
 
     def __init__(self, workingDir = '', otherCaseDir = '', genesOfInterest = None, knownRegulators = None, nCPUs = 1, panels = None, nBootstrap = 100, majorMetric = 'correlation', perEachOtherCase = False, metricsFile = 'metricsFile.h5', seed = 0):
 
@@ -366,7 +366,7 @@ class Analysis():
         Returns:
             None 
 
-        Usage: ****
+        Usage:
             an = Analysis()
             an.runPairOfExperiments()
             pool.map(self.runPairOfExperiments, [(self.bootstrapDir, saveSubDir, os.path.join(self.otherCaseDir, 'bootstrap/', saveSubDir, '') if self.perEachOtherCase else self.otherCaseDir) for saveSubDir in saveSubDirs])
@@ -407,7 +407,7 @@ class Analysis():
         Returns:
             None 
 
-        Usage: ****
+        Usage:
             an = Analysis()
             an.analyzeBootstrapExperiment()
         '''
@@ -455,7 +455,7 @@ class Analysis():
             pd.DataFrame 
                 TEXT
 
-        Usage: ****
+        Usage:
             an = Analysis()
             an.analyzeCombinationVariant(variant)
         '''
@@ -478,7 +478,7 @@ class Analysis():
                 list
                     list of experiments
 
-            Usage: ****
+            Usage: MARK
                 getPeaksList(df_temp)
             '''
 
@@ -569,7 +569,7 @@ class Analysis():
         Returns:
             None
 
-        Usage: ****
+        Usage:
             pool.map(self._forScramble, [(workingDir, measures, df.copy(), N, maxDistance, halfWindowSize, j) for j in range(M)])
         '''
 
@@ -751,7 +751,7 @@ class Analysis():
             None
 
         Usage: 
-            *** Not sure how you want this part ***
+            [ Not sure how you want this part ]
             self.analyzeCase(df_expr)
         '''
 
@@ -1563,13 +1563,13 @@ class Analysis():
                 Name of combination variant (e.g. 'Avg combo4avgs', 'Avg combo3avgs')
 
             nG: int, Default 8
-                The threshold to apply when forming flat clusters ***
+                The threshold to apply when forming flat clusters MARK
 
             nE: int, Default 30
-                The threshold to apply when forming flat clusters ***
+                The threshold to apply when forming flat clusters MARK
 
             fcutoff: float, Default 0.5
-                Fraction cutoff ***
+                Fraction cutoff MARK
 
             width: int, Default 50
                 Width of peak 

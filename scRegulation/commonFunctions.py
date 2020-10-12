@@ -1,8 +1,8 @@
 ''' Common functions used in analysis pipeline 
 '''
 
-from general import *
-from genes import *
+from .general import *
+from .genes import *
 
 cleanListString = lambda c: str(list(c)).replace(' ', '').replace("'", '').replace(']', '').replace('[', '').replace(',', ', ')
 
