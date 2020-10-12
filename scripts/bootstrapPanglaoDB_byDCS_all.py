@@ -1,4 +1,4 @@
-from scRegulation.commonFunctions import *
+from scRegulation.commonFunctions import MetadataDirName, receptorsListHugo_2555, gEC23
 from scRegulation.analysisPipeline import Analysis
 
 def preparePerSampleDEgenes():

@@ -5,18 +5,64 @@ from .commonFunctions import *
 
 class Analysis():
 
-    '''Class of analysis and visualization functions for scRegulation'''
+    '''Class of analysis and visualization functions for scRegulation
+    
+    Parameters:
+        workingDir: str, Default ''
+            TEXT
+        
+        otherCaseDir: str, Default ''
+            TEXT
+        
+        genesOfInterest: list, Default None
+            TEXT
 
-    def __init__(self, workingDir = '', otherCaseDir = '', genesOfInterest = None, knownRegulators = None, nCPUs = 1, panels = None, nBootstrap = 100, majorMetric = 'correlation', perEachOtherCase = False, metricsFile = 'metricsFile.h5', seed = 0):
+        knownRegulators: list, Default None
+            TEXT
+
+        nCPUs: int, Default 1
+            TEXT
+
+        panels: list, Default None
+            TEXT
+
+        nBootstrap: int, Default 100
+            TEXT
+
+        majorMetric: str, Default 'correlation'
+            TEXT
+
+        perEachOtherCase: boolean, False 
+            TEXT
+
+        metricsFile: str, 'metricsFile.h5' 
+            TEXT
+
+        seed: int, None 
+            TEXT
+       
+    '''
+
+    def __init__(self, workingDir = '', otherCaseDir = '', genesOfInterest = None, knownRegulators = None, nCPUs = 1, panels = None, nBootstrap = 100, majorMetric = 'correlation', perEachOtherCase = False, metricsFile = 'metricsFile.h5', seed = None):
 
         '''Function called automatically and sets up working directory, files, and input information'''
 
-        np.random.seed(seed)
+        if seed is None:
+            np.random.seed()
+        else:
+            np.random.seed(seed)
 
         self.workingDir = workingDir
 
         if not os.path.exists(self.workingDir):
             os.makedirs(self.workingDir)
+
+        #if os.path.isfile('_locked') or os.path.isfile('_completed'):
+        #    self.locked = True
+        #else:
+        #    with open('_locked', 'w'):
+        #        os.utime('_locked')
+        #os.remove('_locked')
 
         self.otherCaseDir = otherCaseDir
 

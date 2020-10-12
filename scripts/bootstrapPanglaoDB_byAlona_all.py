@@ -1,4 +1,4 @@
-from scRegulation.commonFunctions import *
+from scRegulation.commonFunctions import MetadataDirName, RDataDirName, receptorsListHugo_2555, gEC23
 from scRegulation.analysisPipeline import Analysis
 
 def preparePerSampleDEgenes():
@@ -141,7 +141,7 @@ def preparePerSampleDEgenes():
                 print('Error while processing file:\n', exception)
 
     # Prepare df_ranks
-    if False:
+    if True:
         allBatches = pd.read_hdf(ECIndexAnnotation, key='df')['file'].droplevel(['cluster', 'celltype', 'SRA', 'SRS']).str.split('.', expand=True)[0].drop_duplicates()
         
         for species in ['Mus musculus', 'Homo sapiens']:
