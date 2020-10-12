@@ -13,6 +13,7 @@ data/
 *.sln
 *.pyproj
 .vs/
+*.sb
 
 # Distribution / packaging
 .Python
