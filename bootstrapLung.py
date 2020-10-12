@@ -46,21 +46,26 @@ if __name__ == '__main__':
                 knownRegulators=gEC23, 
                 nCPUs=4 if platform.system()=="Windows" else 10, 
                 panels=['combo3avgs', 'combo4avgs', 'fraction', 'binomial', 'markers', 'top50'], 
-                nBootstrap=19, 
+                nBootstrap=100, 
                 perEachOtherCase=False)
 
-    mousePanglaoAllBatchesDir = '/mnt/research/piermarolab/Sergii/Endothelial by PanglaoDB definition/EC all bootstrap 100 w21/Mus musculus/All/'
-    humanPanglaoAllBatchesDir = '/mnt/research/piermarolab/Sergii/Endothelial by PanglaoDB definition/EC all bootstrap 100 w21/Homo sapiens/All/'
+    humanPanglaoAllBatchesDirAlona = '/mnt/research/piermarolab/Sergii/Endothelial by PanglaoDB definition/EC all bootstrap 100 w21/Homo sapiens/All/'
+    humanPanglaoAllBatchesDirDCS = '/mnt/home/domansk6/Projects/Endothelial/results/workflow/PanglaoDB EC all cells w21/Homo sapiens/' 
 
-    an = Analysis(**dict(args, workingDir='results/PanglaoDB_lung_mouse/', otherCaseDir=humanPanglaoAllBatchesDir))
+    an = Analysis(**dict(args, workingDir='results/PanglaoDB_lung_mouse/', otherCaseDir=humanPanglaoAllBatchesDirDCS))
 
     if not os.path.isfile(an.dataSaveName):
         prepareDEGforTissues(an.dataSaveName, 'Mus musculus', ['Lung', 'Lung mesenchyme', 'Fetal lung', 'Lung endoderm'])
     
-    an.preparePerBatchCase(exprCutoff=0.05)
-    an.prepareBootstrapExperiments()
+    #an.preparePerBatchCase(exprCutoff=0.05)
+    #an.prepareBootstrapExperiments()
     an.analyzeBootstrapExperiments()
     an.reanalyzeMain()
 
+    an.analyzeCombinationVariant('Avg combo3avgs')
+    an.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=20)  
+    an.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=8, nE=30, fcutoff=0.5, width=50)
+
     an.analyzeCombinationVariant('Avg combo4avgs')
-    an.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=10)  
+    an.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=20)  
+    an.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=8, nE=30, fcutoff=0.5, width=50)
