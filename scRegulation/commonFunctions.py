@@ -8,24 +8,24 @@ cleanListString = lambda c: str(list(c)).replace(' ', '').replace("'", '').repla
 
 def movingAverageCentered(a, halfWindowSize, looped = False):
 
-    '''Function used ...
+    '''TEXT
         
     Parameters:
         a: ndarray
-            //
+            TEXT
 
         halfWindowSize: int
-            //
+            TEXT
 
         looped: boolean, Default False
-            //
+            TEXT
 
     Returns:
-        asm: ndarray
-
+        ndarray
+            TEXT
 
     Usage:
-        movingAverageCentered(a, halfWindowSize, looped)
+        movingAverageCentered(a, halfWindowSize)
     '''
 
     '''
@@ -79,7 +79,8 @@ def get_mean_std_cov_ofDataframe(df):
             Data with bootstrap experiment data 
         
     Returns:
-        DataFrame with columns expressing mean, standard deviation, and covariance of input columns
+        pandas.DataFrame:
+            DataFrame with columns expressing mean, standard deviation, and covariance of input columns
 
     Usage:
         get_mean_std_cov_ofDataFrame(df)
@@ -101,14 +102,14 @@ def get_mean_std_cov_ofDataframe(df):
 
 def getGenesOfPeak(se, peak=None, heightCutoff = 0.5, maxDistance = None):
 
-    '''Finds peak region of greatest value
+    '''Find peak region of greatest value
         
     Parameters:
         se: Series
             Normalized aggregated data 
 
         peak: ndarray, Default None
-            Array of indices of max values in data
+            Indices of max values in data
 
         heighCutoff: float, Default 0.5
             Height/value considered to be in peak 
@@ -165,7 +166,7 @@ def getGenesOfPeak(se, peak=None, heightCutoff = 0.5, maxDistance = None):
 
 def getPeaks(se, threshold = 0.2, distance = 50):
 
-    '''Finds peak regions 
+    '''Find peak regions 
         
     Parameters:
         se: Series
@@ -202,13 +203,13 @@ def getDistanceOfBatch(args):
                     Batch identifier
                     
                 df_sample: pandas.DataFrame
-                    Dataframe with expression data 
+                    Expression data 
 
                 metric: str
                     Metric name (e.g. 'correlation') 
 
                 genes: list or 1d numpy.array
-                    List of genes of interest
+                    Genes of interest
 
                 minSize: int
                     Minimum size of input pandas.DataFrame
@@ -302,13 +303,13 @@ def get_df_distance(df, metric = 'correlation', genes = [], analyzeBy = 'batch',
         
     Parameters:
         df: pandas.DataFrame
-            Dataframe with expression data 
+            Expression data 
 
         metric: str, Default 'correlation'
             Metric name (e.g. 'correlation') 
 
         genes: list, Default []
-            List of genes for analysis
+            Genes for analysis
 
         analyzeBy: str, Default 'batch'
             Level to analyze data by (e.g. batches)
@@ -317,10 +318,10 @@ def get_df_distance(df, metric = 'correlation', genes = [], analyzeBy = 'batch',
             Minimum size of input pandas.DataFrame
 
         groupBatches: boolean, Default True 
-            // TEXT //
+            TEXT 
 
         pname: Default None
-            // TEXT //
+            TEXT
 
         cutoff: float, Default 0.05
             Cutoff for percent expression of input data 
@@ -330,7 +331,7 @@ def get_df_distance(df, metric = 'correlation', genes = [], analyzeBy = 'batch',
 
     Returns:
         pandas.DataFrame 
-
+            TEXT
 
     Usage:
         get_df_distance(df)
@@ -527,8 +528,10 @@ def getROC(data):
     Returns:
         np.array 
             Array holding false positive rates
+
         np.array
             Array holding true positive rates
+
     Usage:
         getROC(data)
     '''
@@ -568,7 +571,7 @@ def clusterData(data, n_clusters = None, method = 'Spectral', random_state = Non
 
     Returns:
         list
-            List containing cluster assignment of each object
+            Cluster assignment of each object
 
     Usage:
         clusterData(data)
@@ -606,16 +609,16 @@ def testNumbersOfClusters(data, text = '', n_min = 2, n_max = 20, k = 10):
             Array of shape (features, objects)
 
         text: str, Default ''
-            //
+            TEXT
 
         n_min: int, Default 2
-            //
+            TEXT
 
         n_max: int, Default 20 
-            //
+            TEXT
 
         k: int, Default 10 
-            //
+            TEXT
 
     Usage: 
         testNumbersofClusters(data)

@@ -9,37 +9,37 @@ class Analysis():
     
     Parameters:
         workingDir: str, Default ''
-            TEXT
+            Directory to retrieve and save file and results to
         
         otherCaseDir: str, Default ''
-            TEXT
+            Directory holding comparison data
         
         genesOfInterest: list, Default None
-            TEXT
+            Particular genes to analyze
 
         knownRegulators: list, Default None
             TEXT
 
         nCPUs: int, Default 1
-            TEXT
+            Number of CPUs to use for multiprocessing
 
         panels: list, Default None
-            TEXT
+            Particular measurements to analyze
 
         nBootstrap: int, Default 100
-            TEXT
+            Number of bootstraps to perform
 
         majorMetric: str, Default 'correlation'
-            TEXT
+            Metric name (e.g. ‘correlation’)
 
         perEachOtherCase: boolean, False 
             TEXT
 
         metricsFile: str, 'metricsFile.h5' 
-            TEXT
+            Name of file holding measurement data for specified metric
 
         seed: int, None 
-            TEXT
+            Used to set randomness deterministic
        
     '''
 
@@ -132,7 +132,7 @@ class Analysis():
 
     def prepareDEG(self, dfa, dfb):
 
-        '''Creates rank dataframe with genes ranked by differential expression 
+        '''Create rank dataframe with genes ranked by differential expression 
         
         Parameters:
             dfa: pandas.Dataframe
@@ -207,6 +207,36 @@ class Analysis():
 
     def _forPrepareBootstrapExperiments(self, args):
 
+        ''' TEXT 
+
+        Parameters: 
+            saveSubDir: str
+                Subdirectory for each bootstrap experiment
+
+            df_ranks: pandas.DataFrame
+                Genes ranked by differential expression 
+                If None function will use rank dataframe from working directory
+
+            df_measure: pandas.DataFrame
+                Gene expression distance metric for each batch 
+
+            df_fraction: pandas.DataFrame
+                Fraction of cells expressing each gene for each batch 
+
+            df_median_expr: pandas.DataFrame
+                Median of non-zero values of each gene expression for each batch
+
+            se_count: pandas.DataFrame
+                Per batch counts 
+
+        Returns: 
+            None 
+
+        Usage:
+            self._forPrepareBootstrapExperiments((saveSubDir, df_ranks, df_measure, df_fraction, df_median_expr, se_count))
+
+        '''
+
         saveSubDir, df_ranks, df_measure, df_fraction, df_median_expr, se_count = args
 
         np.random.seed()
@@ -259,14 +289,14 @@ class Analysis():
 
     def prepareBootstrapExperiments(self, allDataToo = True, df_ranks = None, parallel = False):
 
-        '''Prepares bootstrap experiments for all bootstraps by calculating gene statistics for each experiment 
+        '''Prepare bootstrap experiments for all bootstraps by calculating gene statistics for each experiment 
         
         Parameters:
             allDataToo: boolean, Default True
-                Determines whether or not prepare experiment for all data as well
+                Whether to prepare experiment for all data as well
 
             df_ranks: pd.DataFrame, Default None
-                Rank dataframe with genes ranked by differential expression 
+                Genes ranked by differential expression 
                 If None function will use rank dataframe from working directory 
 
         Returns:
@@ -274,6 +304,7 @@ class Analysis():
 
         Usage:
             an = Analysis()
+
             an.prepareBootstrapExperiments()
         '''
 
@@ -311,7 +342,7 @@ class Analysis():
 
     def compareTwoCases(self, saveDir1, saveDir2, name1 = 'N1', name2='N2', saveName = 'saveName'):
 
-        '''Compares gene measurements between two cases for each bootstrap experiment 
+        '''Compare gene measurements between two cases for each bootstrap experiment 
         
         Parameters:
             saveDir1: str
@@ -334,6 +365,7 @@ class Analysis():
 
         Usage:
             an = Analysis()
+
             an.compareTwoCases(saveDir1, saveDir2, name1, name2, saveName)
         '''
 
@@ -410,7 +442,7 @@ class Analysis():
 
     def runPairOfExperiments(self, args):
 
-        '''Analyzes the case, compares it with comparison case, and find the conserved genes between the cases 
+        '''Analyze the case, compare it with comparison case, and find the conserved genes between the cases 
         
         Parameters:
             saveDir: str
@@ -426,9 +458,7 @@ class Analysis():
             None 
 
         Usage:
-            an = Analysis()
-            an.runPairOfExperiments()
-            pool.map(self.runPairOfExperiments, [(self.bootstrapDir, saveSubDir, os.path.join(self.otherCaseDir, 'bootstrap/', saveSubDir, '') if self.perEachOtherCase else self.otherCaseDir) for saveSubDir in saveSubDirs])
+            self.runPairOfExperiments((saveDir, saveSubDir, otherCaseDir))
         '''
 
         saveDir, saveSubDir, otherCaseDir = args
@@ -458,7 +488,7 @@ class Analysis():
 
     def analyzeBootstrapExperiments(self):
 
-        '''Analyzes all bootstrap experiments and calculates dendrogram correlation data
+        '''Analyze all bootstrap experiments and calculates dendrogram correlation data
         
         Parameters:
             None
@@ -468,6 +498,7 @@ class Analysis():
 
         Usage:
             an = Analysis()
+
             an.analyzeBootstrapExperiment()
         '''
 
@@ -511,11 +542,12 @@ class Analysis():
                 Name of combination variant (e.g. 'Avg combo4avgs', 'Avg combo3avgs')
 
         Returns:
-            pd.DataFrame 
+            pandas.DataFrame 
                 TEXT
 
         Usage:
             an = Analysis()
+
             an.analyzeCombinationVariant(variant)
         '''
 
@@ -524,18 +556,18 @@ class Analysis():
             '''Get list of peaks and experiments
             
             Parameters:
-                df_temp: pd.DataFrame
+                df_temp: pandas.DataFrame
                     Dataframe containing dendrogram data for specific variant 
 
             Returns:
                 list: 
-                    list of all genes in peak for all experiments 
+                    All genes in peak for all experiments 
 
                 list:
-                    list of list of genes in peak for each experiment
+                    Lists of genes in peak for each experiment
 
                 list
-                    list of experiments
+                    Experiments
 
             Usage: MARK
                 getPeaksList(df_temp)
@@ -605,12 +637,12 @@ class Analysis():
         
         Parameters:
             workingDir: str 
-                Directory to save file to 
+                Directory to retrieve and save file and results to
 
             measures: list
-                List of measures (e.g: [Markers', 'Binomial -log(pvalue)', 'Top50 overlap'])
+                Measures (e.g: [Markers', 'Binomial -log(pvalue)', 'Top50 overlap'])
 
-            df: pd.DataFrame 
+            df: pandas.DataFrame 
                 TEXT 
 
             N: int 
@@ -623,13 +655,13 @@ class Analysis():
                 TEXT
 
             j: int
-                Seed to create random generator 
+                Used to set randomness deterministic
 
         Returns:
             None
 
         Usage:
-            pool.map(self._forScramble, [(workingDir, measures, df.copy(), N, maxDistance, halfWindowSize, j) for j in range(M)])
+            self._forScramble((workingDir, measurements, df, N, maxDistance, halfWindowSize, j))
         '''
 
         workingDir, measures, df, N, maxDistance, halfWindowSize, j = args
@@ -661,7 +693,7 @@ class Analysis():
         Parameters:
 
             measures: list
-                List of measures (e.g: [Markers', 'Binomial -log(pvalue)', 'Top50 overlap'])
+                Measures (e.g: [Markers', 'Binomial -log(pvalue)', 'Top50 overlap'])
 
             subDir: str, Default ''
                 Subdirectory to save dataframe to 
@@ -677,6 +709,7 @@ class Analysis():
 
         Usage: 
             an = Analysis()
+
             an.scramble (measures)
         '''
 
@@ -748,24 +781,24 @@ class Analysis():
 
     def analyzeCase(self, df_expr, toggleCalculateMajorMetric = True, exprCutoff = 0.05, toggleExportFigureData = True, toggleCalculateMeasures = True, suffix = '', saveDir = '', toggleGroupBatches = True, dpi = 300, toggleAdjustText = True, figureSize=(8, 22), toggleAdjustFigureHeight=True, noPlot = False, halfWindowSize = 10, printStages = True, externalPanelsData = None, toggleIncludeHeatmap = True, addDeprecatedPanels = False):
 
-        ''' Analyzes, calculates, and generates plots for individual experiment
+        ''' Analyze, calculate, and generate plots for individual experiment
         
         Parameters:
 
-            df_expr: pd.Dataframe
+            df_expr: pandas.Dataframe
                 Take one species, one cluster (subset of clusters)
 
             toggleCalculateMajorMatric: boolean, Default True 
-                Determines whether or not to calculate cdist of major metric 
+                Whether to calculate cdist of major metric 
 
             exprCutoff: float, Default 0.05 
                 Cutoff for percent expression of input data
 
             toggleExportFigureData: boolean, Default True 
-                Determines whether or not to export figure data 
+                Whether to export figure data 
 
             toggleCalculateMeasures: boolean, Default True  
-                Determines whether or not to calculate measures 
+                Whether to calculate measures 
 
             suffix: str, Default ''
                 Name of experiment 
@@ -777,40 +810,39 @@ class Analysis():
                 TEXT
 
             dpi: int or 'figure', Default 300
-                The resolution in dots per inch, if 'float' use figures dpi value 
+                Resolution in dots per inch, if 'float' use figures dpi value 
 
             toggleAdjustText: boolean, Default True 
-                Determines whether or not to use module to fix text overlap in figure
+                Whether to use module to fix text overlap in figure
 
             figure_size: tuple, Default (8, 20)
                 Width, height in inches
 
             toggleAdjustFigureHeight: boolean, Default True 
-                Determines whether or not to adjust figure height 
+                Whether to adjust figure height 
 
             noPlot: boolean, Default False
-                Determines whether or not to plot _______
+                Whether to plot _______
 
             halfWindowSize: int, Default 10
                 TEXT
 
             printStages: boolean, Default True
-                Determines whether or not to print stage status to output
+                Whether to print stage status to output
             
             externalPanelsData: dict, Default None 
                 TEXT
 
             toggleIncludeHeatmap: boolean, Default True
-                Determines whether or not to plot heatmap 
+                Whether to plot heatmap 
             
             addDeprecatedPanels: boolean, Default False
-                Determine whether or not to include deprecated panels 
+                Whether to include deprecated panels 
 
         Returns:
             None
 
         Usage: 
-            [ Not sure how you want this part ]
             self.analyzeCase(df_expr)
         '''
 
@@ -823,14 +855,14 @@ class Analysis():
 
             Parameters:
 
-                df_expr: pd.DataFrame
+                df_expr: pandas.DataFrame
                     Take one species, one cluster (subset of clusters)
 
                 saveDir: str
                     Exerything is exported to this directory, should be unique for each dataset
 
                 groupBatches: boolean
-                    Determines whether or not to take median across batches
+                    Whether to take median across batches
 
                 selGenes: list 
                     List of receptors, or transcription factors
@@ -881,8 +913,8 @@ class Analysis():
             ''' Builds and plots dendrogram, heatmap, and bargraphs.
 
             Parameters:
-                df: pd.DataFrame 
-                    Dataframe containing all calculated measurement 
+                df: pandas.DataFrame 
+                    All calculated measurement 
 
                 metric: str, Default 'euclidean'
                     Name of metric used to build dendrogram and identify clusters in it
@@ -891,17 +923,17 @@ class Analysis():
                     Metric 'euclidean_missing' used commonly-non-missing points only
 
                 linkageMethod: str, Default 'ward'
-                    The linkage algorithm to use
+                    Linkage algorithm to use
 
                 n_clusters: int, Default 10 
-                    Specify number of clusters to find 
+                    Specific number of clusters to find 
 
                 adjustText: str, Default toggleAdjustText
-                    Determines whether or not to use module to fix text overlap in figure
+                    Whether to use module to fix text overlap in figure
 
             Returns:
                 dict:
-                    Dictionary holding figure data for export 
+                    Figure data for export 
 
             Usage: 
                 makeCombinationPlot(df)
@@ -1449,13 +1481,13 @@ class Analysis():
             Parameters:
 
                 dataArgs: dict
-                    Dictionary holding figure data for export 
+                    Figure data for export 
 
                 saveXLSX: boolean, Default True 
-                    Determines whether or not to export data as an excel file
+                    Whether to export data as an excel file
 
                 saveHDF: boolean, Default True 
-                    Determines whether or not to export data as an hdf file
+                    Whether to export data as an hdf file
 
             Returns:
                 None 
@@ -1598,6 +1630,7 @@ class Analysis():
 
         Usage:
             an = Analyze()
+
             an.reanalyzeMain()
         '''
 
@@ -1622,10 +1655,10 @@ class Analysis():
                 Name of combination variant (e.g. 'Avg combo4avgs', 'Avg combo3avgs')
 
             nG: int, Default 8
-                The threshold to apply when forming flat clusters MARK
+                Threshold to apply when forming flat clusters MARK
 
             nE: int, Default 30
-                The threshold to apply when forming flat clusters MARK
+                Threshold to apply when forming flat clusters MARK
 
             fcutoff: float, Default 0.5
                 Fraction cutoff MARK
@@ -1638,7 +1671,9 @@ class Analysis():
 
         Usage:
             an = Analyze()
+
             an.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=8, nE=30, fcutoff=0.5, width=50)
+            
             an.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=8, nE=30, fcutoff=0.5, width=50)
         '''
 
@@ -1647,12 +1682,12 @@ class Analysis():
             ''' Get list of peaks and genes
 
             Parameters:
-                df_temp: pd.DataFrame
-                    Dataframe containing dendrogram data
+                df_temp: pandas.DataFrame
+                    Dendrogram data
 
             Returns:
                 list:
-                    list of list of genes in peak for each experiment
+                    Lists of genes in peak for each experiment
 
                 ndarray:
                     Sorted and unique genes 
