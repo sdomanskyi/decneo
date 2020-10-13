@@ -3,42 +3,14 @@ from scRegulation.analysisPipeline import Analysis
 
 if __name__ == '__main__':
 
+    if platform.system()=="Windows":
+        wdir = 'd:/Projects/A_Endothelial/VS/Endothelial/results/Alona_SRAs/'
+    else:
+        wdir = '/mnt/research/piermarolab/Sergii/Alona_SRAs/'
+
+    # Prepare SRA SRS cells counts
     if False:
-
-        if True:
-            se = pd.read_excel('PanglaoDB_tissue_groups GP.xlsx', index_col=1)['New Groups'].str.replace('?', '')
-            se[se!=se] = se.index.values[se!=se]
-            tissueDict = se.to_dict()
-
-        if False:
-            df = pd.read_excel('e.xlsx', index_col=None, header=0)
-
-
-            tissueDict = np.loadtxt('Tissue_dict_PanglaoDB_bySD.txt', dtype=str, delimiter='\t')
-            df['tissue'] = df['tissue'].replace(dict(zip(tissueDict.T[1], tissueDict.T[0])))
-            df = df.set_index(df.columns[:5].values.tolist())
-            df = df.groupby(level=['SRA', 'SRS', 'tissue', 'species']).sum()
-            df = df.reset_index().set_index(['tissue', 'species'])
-            df = pd.concat([df['SRA'].groupby(level=['tissue', 'species']).agg(lambda s: np.unique(s).shape[0]),
-                            df['SRS'].groupby(level=['tissue', 'species']).agg(lambda s: np.unique(s).shape[0]),
-                            df['cells'].groupby(level=['tissue', 'species']).sum()], axis=1, sort=False).unstack('species')
-            df.columns.names = ['measure', 'species']
-            df = df.reorder_levels(['species', 'measure'], axis=1).sort_index(axis=1)
-            print(df)
-            df.to_excel('eg2.xlsx')
-
-        if False:
-            for species in ['Homo sapiens', 'Mus musculus']:
-                print('Reading normalized %s data from h5' % species, flush=True)
-                df = pd.read_hdf('results/DCS output/PanglaoDB_EC_byDCS_normed_and_filtered.h5', key=species)
-                df = df.loc['KDR']
-                df.to_hdf('results/PanglaoDB_EC_byDCS_KDRonly.h5', key=species)
-                print(df)
-
-        # DCS SRS stats
-        if False:
-            df = pd.concat([pd.read_hdf('results/PanglaoDB_EC_byDCS_KDRonly.h5', key='Homo sapiens'),
-                            pd.read_hdf('results/PanglaoDB_EC_byDCS_KDRonly.h5', key='Mus musculus')], 
+            df = pd.concat([pd.read_hdf(wdir + 'KDR.h5', key='Homo sapiens'), pd.read_hdf(wdir + 'KDR.h5', key='Mus musculus')], 
                             keys=['Homo sapiens', 'Mus musculus'], names=['species'], axis=0, sort=False).reset_index()
             df['SRA'] = df['batch'].str.split('_', expand=True)[0]
             df['SRS'] = df['batch'].str.split('_', expand=True)[1]
@@ -47,7 +19,12 @@ if __name__ == '__main__':
             df = df.loc[df['cell'] >= 10]
             df.columns = ['cells']
             print(df)
-        
+
+            # New PanglaoDB tissue associations
+            se = pd.read_excel(wdir + 'PanglaoDB_tissue_groups GP.xlsx', index_col=1)['New Groups'].str.replace('?', '')
+            se[se!=se] = se.index.values[se!=se]
+            tissueDict = se.to_dict()
+
             dft = pd.read_excel('dev/PanglaoDBdata/df_cell_type_annotations.xlsx', index_col=[0,1,2], header=0, sheet_name='tissues')
             dft['tissue'] = dft['tissue'].replace(tissueDict)
             df['tissue'] = dft.loc[df.index]
@@ -57,7 +34,7 @@ if __name__ == '__main__':
             dfc['SRS count'] = dfc['SRS'].groupby(['tissue', 'species', 'SRA']).agg('unique').apply(len).reindex(dfc.index)
             print(dfc)
 
-            writer = pd.ExcelWriter('DCS tissues counts.xlsx')
+            writer = pd.ExcelWriter(wdir + 'Alona tissues counts S.xlsx')
             dfc.to_excel(writer, 'Non-aggregated', merge_cells=False)
 
             dfc = dfc.groupby(['tissue', 'species', 'SRA']).agg({'SRS':'unique', 'cells':'sum', 'SRS count':'max'})
@@ -75,31 +52,10 @@ if __name__ == '__main__':
 
             writer.save()
 
-        if True:
-            df3 = pd.read_excel('for meeting 10 08 2020/b3.xlsx', index_col=0, header=0)
-            df4 = pd.read_excel('for meeting 10 08 2020/b4.xlsx', index_col=0, header=0)
+            exit()
 
-            print(df3)
-            print(df4)
-
-            import umap
-            #coords3 = umap.UMAP(random_state=42).fit_transform(df3.values.T).T
-            #plt.scatter(coords3[0], coords3[1])
-            #for i, label in enumerate(df3.columns):
-            #    plt.text(coords3[0][i], coords3[1][i], label)
-
-            #plt.show()
-
-
-            coords4 = umap.UMAP(random_state=42).fit_transform(df4.values.T).T
-            plt.scatter(coords4[0], coords4[1])
-            for i, label in enumerate(df4.columns):
-                plt.text(coords4[0][i], coords4[1][i], label)
-
-            plt.show()
-
-    if False:
-        cases = pd.read_excel('DCS tissues SRAs.xlsx', sheet_name='Selected DCS', index_col=[0,1,2], header=0)
+    if True:
+        cases = pd.read_excel(wdir + 'Alona tissues counts.xlsx', sheet_name='Selected', index_col=[0,1,2], header=0)
         cases = cases[cases['cells'] >= 100]
         cases = cases['SRS'].str.replace(' ', '').str.split(',')
         print(cases)
@@ -109,18 +65,18 @@ if __name__ == '__main__':
 
             args = dict(genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC23, nCPUs=4 if platform.system()=="Windows" else 10, panels=['combo3avgs', 'combo4avgs', 'fraction', 'binomial', 'markers', 'top50'], nBootstrap=100, perEachOtherCase=False)
 
-            allPanglaoDBmouse = '/mnt/home/domansk6/Projects/Endothelial/results/PanglaoDB_byDCS_mouse/bootstrap/All/'
-            allPanglaoDBhuman = '/mnt/home/domansk6/Projects/Endothelial/results/PanglaoDB_byDCS_human/bootstrap/All/'
+            allPanglaoDBmouse = '/mnt/research/piermarolab/Sergii/PanglaoDB_byAlona/PanglaoDB_byDCS_mouse/bootstrap/All/'
+            allPanglaoDBhuman = '/mnt/research/piermarolab/Sergii/PanglaoDB_byAlona/PanglaoDB_byDCS_human/bootstrap/All/'
         
-            an = Analysis(**dict(args, workingDir='/mnt/research/piermarolab/Sergii/DCS_SRAs/PanglaoDB_byDCS %s %s %s/' % (tissue, species, SRA), otherCaseDir=allPanglaoDBmouse if species == 'Homo sapiens' else allPanglaoDBhuman))
+            an = Analysis(**dict(args, workingDir=wdir + 'Alona %s %s %s/' % (tissue, species, SRA), otherCaseDir=allPanglaoDBmouse if species == 'Homo sapiens' else allPanglaoDBhuman))
 
             if False:
                 if os.path.isfile(an.workingDir + 'results.png'):
                     continue
 
                 if not os.path.isfile(an.dataSaveName):
-                    df_EC = pd.concat([pd.read_hdf('/mnt/research/piermarolab/Sergii/DCS output/PanglaoDB_EC.h5', key=SRA + '_' + SRS) for SRS in SRSs], axis=1, sort=False).fillna(0.)
-                    df_other = pd.concat([pd.read_hdf('/mnt/research/piermarolab/Sergii/DCS output/PanglaoDB_nonEC.h5', key=SRA + '_' + SRS) for SRS in SRSs], axis=1, sort=False).fillna(0.)
+                    df_EC = pd.concat([pd.read_hdf('/mnt/research/piermarolab/Sergii/PanglaoDB_byAlona/PanglaoDB_Alona_EC.h5', key=SRA + '_' + SRS) for SRS in SRSs], axis=1, sort=False).fillna(0.)
+                    df_other = pd.concat([pd.read_hdf('/mnt/research/piermarolab/Sergii/PanglaoDB_byAlona/PanglaoDB_Alona_nonEC.h5', key=SRA + '_' + SRS) for SRS in SRSs], axis=1, sort=False).fillna(0.)
 
                     if len(SRSs) < 5:
                         nBatches = 10
@@ -134,8 +90,11 @@ if __name__ == '__main__':
 
                     an.prepareDEG(df_EC, df_other)
 
+            if False:
                 an.preparePerBatchCase(exprCutoff=0.05)
-                an.prepareBootstrapExperiments()
+                an.prepareBootstrapExperiments(parallel=True)
+
+            if True:
                 an.analyzeBootstrapExperiments()
                 an.reanalyzeMain()
                 an.analyzeCombinationVariant('Avg combo3avgs')
@@ -145,7 +104,7 @@ if __name__ == '__main__':
                 an.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=20)  
                 an.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=20)  
 
-            else:
+            if False:
                 name = '%s %s %s' % (tissue, species, SRA)
 
                 # Collect bootstrap counts for combo3 and combo4
@@ -171,7 +130,7 @@ if __name__ == '__main__':
                 s3.to_hdf('results_DCS_35_SRA.h5', key='combo3/s/%s' % name, mode='a', complevel=4, complib='zlib')
                 s4.to_hdf('results_DCS_35_SRA.h5', key='combo4/s/%s' % name, mode='a', complevel=4, complib='zlib')
 
-    if True:
+    if False:
         def getDf(keys, combo, parameter, species):
 
             dfs = []
@@ -243,3 +202,24 @@ if __name__ == '__main__':
 
             plotDf(b3.corr(), '%s b3_cut.png' % species)
             plotDf(b4.corr(), '%s b4_cut.png' % species)
+
+        # Plots with UMAP layout
+        if False:
+            df3 = pd.read_excel('for meeting 10 08 2020/b3.xlsx', index_col=0, header=0)
+            print(df3)
+            df4 = pd.read_excel('for meeting 10 08 2020/b4.xlsx', index_col=0, header=0)
+            print(df4)
+
+            import umap
+
+            coords3 = umap.UMAP(random_state=42).fit_transform(df3.values.T).T
+            plt.scatter(coords3[0], coords3[1])
+            for i, label in enumerate(df3.columns):
+                plt.text(coords3[0][i], coords3[1][i], label)
+            plt.show()
+
+            coords4 = umap.UMAP(random_state=42).fit_transform(df4.values.T).T
+            plt.scatter(coords4[0], coords4[1])
+            for i, label in enumerate(df4.columns):
+                plt.text(coords4[0][i], coords4[1][i], label)
+            plt.show()

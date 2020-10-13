@@ -4,7 +4,7 @@
 from .general import *
 
 cwd = os.path.dirname(__file__)
-print('cwd:', cwd)
+#print('cwd:', cwd)
 
 Mouse_to_Human_HUGO_conversion = read(os.path.join(cwd, 'geneLists/Mouse_to_Human_HUGO.gz'), jsonFormat=True)
 

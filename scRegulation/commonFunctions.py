@@ -439,7 +439,7 @@ def metric_euclidean_missing(u, v):
                     
     return np.sqrt(((u[wh] - v[wh])**2).sum())
 
-def binomialEnrichmentProbability(nx_obj, enriched_genes, target_genes = False, background_genes = False):
+def binomialEnrichmentProbability(nx_obj, enriched_genes, target_genes = False, background_genes = False, PCNpath = 'data/'):
 
     '''Takes in a network x object and list of enriched genes and calculates the binomial
     enrichment based on the number of enriched interaction there are.
@@ -464,11 +464,15 @@ def binomialEnrichmentProbability(nx_obj, enriched_genes, target_genes = False, 
     
     if not isinstance(nx_obj, nx.Graph):
         if isinstance(nx_obj, str):
-            if not os.path.isfile('data/PCN.pklz'):
-                nx_obj = nx.read_edgelist(nx_obj).to_undirected()
-                write(nx_obj, 'data/PCN')
+            if not os.path.isfile(os.path.join(PCNpath, 'PCN.pklz')):
+                try:
+                    nx_obj = nx.read_edgelist(nx_obj).to_undirected()
+                except Exception as exception:
+                    print(exception)
+
+                write(nx_obj, os.path.join(PCNpath, 'PCN'))
             else:
-                nx_obj = read('data/PCN')
+                nx_obj = read(os.path.join(PCNpath, 'PCN'))
         else:
             print("Error: nx_obj needs to be a networkx graph or a network edgelist file name")
             return

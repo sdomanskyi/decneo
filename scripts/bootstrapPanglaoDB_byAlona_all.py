@@ -1,4 +1,4 @@
-from scRegulation.commonFunctions import MetadataDirName, RDataDirName, receptorsListHugo_2555, gEC23
+from scRegulation.commonFunctions import *
 from scRegulation.analysisPipeline import Analysis
 
 def preparePerSampleDEgenes():
@@ -83,7 +83,7 @@ def preparePerSampleDEgenes():
             try:
                 batch = file.split('.')[0]
 
-                if KeyInStore(batch, fileNameEC):
+                if KeyInStore(batch, fileNameRanks):
                     continue
 
                 temp = batch.split('_')
@@ -174,30 +174,40 @@ def prepareInput(fileName, species):
 
 if __name__ == '__main__':
 
-    if True:
-        preparePerSampleDEgenes()
+    #preparePerSampleDEgenes()
 
-    exit()
+    args = dict(genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC23, nCPUs=4 if platform.system()=="Windows" else 1, 
+                panels=['combo3avgs', 'combo4avgs', 'fraction', 'binomial', 'markers', 'top50'], nBootstrap=100, perEachOtherCase=True, PCNpath=os.path.join(os.path.dirname(__file__), 'data'))
 
-    args = dict(genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC23, nCPUs=4 if platform.system()=="Windows" else 20, 
-                panels=['combo3avgs', 'combo4avgs', 'fraction', 'binomial', 'markers', 'top50'], nBootstrap=100, perEachOtherCase=True)
-
-    dirHuman = '/mnt/home/domansk6/Projects/Endothelial/results/PanglaoDB_byDCS_human/'
-    dirMouse = '/mnt/home/domansk6/Projects/Endothelial/results/PanglaoDB_byDCS_mouse/'
+    if platform.system()=="Windows":
+        dirHuman = 'd:/Projects/A_Endothelial/VS/Endothelial/results/Alona_all/PanglaoDB_byDCS_human/'
+        dirMouse = 'd:/Projects/A_Endothelial/VS/Endothelial/results/Alona_all/PanglaoDB_byDCS_mouse/'
+    else:
+        dirHuman = '/mnt/research/piermarolab/Sergii/PanglaoDB_byAlona/PanglaoDB_byDCS_human/'
+        dirMouse = '/mnt/research/piermarolab/Sergii/PanglaoDB_byAlona/PanglaoDB_byDCS_mouse/'
 
     anHuman = Analysis(**dict(args, workingDir=dirHuman, otherCaseDir=dirMouse))
+    anMouse = Analysis(**dict(args, workingDir=dirMouse, otherCaseDir=dirHuman))
+
     #prepareInput(anHuman.dataSaveName, 'Homo sapiens')
+    #prepareInput(anMouse.dataSaveName, 'Mus musculus')
+
+    #pd.read_hdf(anHuman.dataSaveName, key='df').loc['KDR'].to_hdf(os.path.dirname(dirHuman[:-1]) + 'KDR.h5', key='Homo sapiens')
+    #pd.read_hdf(anMouse.dataSaveName, key='df').loc['KDR'].to_hdf(os.path.dirname(dirHuman[:-1]) + 'KDR.h5', key='Mus musculus')
+
     #anHuman.preparePerBatchCase(exprCutoff=0.05)
     #anHuman.prepareBootstrapExperiments()
-    anHuman.analyzeBootstrapExperiments()
+    #anHuman.analyzeBootstrapExperiments()
 
-    anMouse = Analysis(**dict(args, workingDir=dirMouse, otherCaseDir=dirHuman))
-    #prepareInput(anMouse.dataSaveName, 'Mus musculus')
     #anMouse.preparePerBatchCase(exprCutoff=0.05)
-    #anMouse.prepareBootstrapExperiments()
+    ##anMouse.prepareBootstrapExperiments()
+
+
     anMouse.analyzeBootstrapExperiments()
 
-    anHuman.analyzeBootstrapExperiments()
+    #anHuman.analyzeBootstrapExperiments()
+
+    exit()
 
     anHuman.reanalyzeMain()
     anHuman.analyzeCombinationVariant('Avg combo3avgs')

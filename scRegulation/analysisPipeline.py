@@ -43,7 +43,7 @@ class Analysis():
        
     '''
 
-    def __init__(self, workingDir = '', otherCaseDir = '', genesOfInterest = None, knownRegulators = None, nCPUs = 1, panels = None, nBootstrap = 100, majorMetric = 'correlation', perEachOtherCase = False, metricsFile = 'metricsFile.h5', seed = None):
+    def __init__(self, workingDir = '', otherCaseDir = '', genesOfInterest = None, knownRegulators = None, nCPUs = 1, panels = None, nBootstrap = 100, majorMetric = 'correlation', perEachOtherCase = False, metricsFile = 'metricsFile.h5', seed = None, PCNpath = 'data/'):
 
         '''Function called automatically and sets up working directory, files, and input information'''
 
@@ -68,6 +68,8 @@ class Analysis():
 
         if not os.path.exists(self.otherCaseDir):
             os.makedirs(self.otherCaseDir)
+
+        self.PCNpath = PCNpath
 
         self.genesOfInterest = genesOfInterest
         self.knownRegulators = knownRegulators
@@ -203,7 +205,59 @@ class Analysis():
 
         return
 
-    def prepareBootstrapExperiments(self, allDataToo = True, df_ranks = None):
+    def _forPrepareBootstrapExperiments(self, args):
+
+        saveSubDir, df_ranks, df_measure, df_fraction, df_median_expr, se_count = args
+
+        np.random.seed()
+
+        try:
+            print(saveSubDir, end='\t', flush=True)
+            if not os.path.exists(os.path.join(self.bootstrapDir, saveSubDir)):
+                os.makedirs(os.path.join(self.bootstrapDir, saveSubDir))
+
+            if saveSubDir == 'All':
+                batches = df_measure.columns
+            else:
+                batches = np.random.choice(df_measure.columns, size=len(df_measure.columns), replace=True)
+
+            np.savetxt(os.path.join(self.bootstrapDir, saveSubDir, 'batches.txt'), batches, fmt='%s')
+
+            df_measure_temp = pd.Series(data=np.nanmedian(df_measure[batches].values.copy(), axis=1, overwrite_input=True), index=df_measure.index)
+        
+            df_measure_temp = df_measure_temp.unstack(0)
+
+            df_measure_temp.to_hdf(os.path.join(self.bootstrapDir, saveSubDir, self.metricsFile), key=self.majorMetric, mode='a', complevel=4, complib='zlib')
+
+            df_fraction_temp = df_fraction[batches]
+            df_fraction_temp.columns = df_fraction_temp.columns + '_' + np.array(range(len(df_fraction_temp.columns))).astype(str)
+            df_fraction_temp = df_fraction_temp.mean(axis=1)
+            df_fraction_temp.to_hdf(os.path.join(self.bootstrapDir, saveSubDir, 'perGeneStats.h5'), key='df_fraction', mode='a', complevel=4, complib='zlib')
+
+            df_median_expr_temp = df_median_expr[batches]
+            df_median_expr_temp.columns = df_median_expr_temp.columns + '_' + np.array(range(len(df_median_expr_temp.columns))).astype(str)
+            df_median_expr_temp = df_median_expr_temp.mean(axis=1)
+            df_median_expr_temp.to_hdf(os.path.join(self.bootstrapDir, saveSubDir, 'perGeneStats.h5'), key='df_expression', mode='a', complevel=4, complib='zlib')
+
+            se_count_temp = se_count[batches]
+            se_count_temp.index = se_count_temp.index + '_' + np.array(range(len(se_count_temp.index))).astype(str)
+            se_count_temp = se_count_temp.sort_values(ascending=False)
+            se_count_temp.to_hdf(os.path.join(self.bootstrapDir, saveSubDir, 'perGeneStats.h5'), key='se_count', mode='a', complevel=4, complib='zlib')
+        
+            np.savetxt(os.path.join(self.bootstrapDir, saveSubDir, 'size.txt'), [df_fraction_temp.shape[0], se_count_temp.sum()], fmt='%i')
+
+            if not df_ranks is None:
+                df_ranks_temp = df_ranks[batches]
+                df_ranks_temp.columns = df_ranks_temp.columns + '_' + np.array(range(len(df_ranks_temp.columns))).astype(str)
+                df_ranks_temp = df_ranks_temp.median(axis=1).sort_values()
+                df_ranks_temp.to_hdf(os.path.join(self.bootstrapDir, saveSubDir, 'perGeneStats.h5'), key='df_ranks', mode='a', complevel=4, complib='zlib')
+
+        except Exception as exception:
+            print(exception)
+
+        return
+
+    def prepareBootstrapExperiments(self, allDataToo = True, df_ranks = None, parallel = False):
 
         '''Prepares bootstrap experiments for all bootstraps by calculating gene statistics for each experiment 
         
@@ -239,55 +293,14 @@ class Analysis():
             if allDataToo:
                 saveSubDirs = ['All'] + saveSubDirs
 
-            for saveSubDir in saveSubDirs:
-                try:
-                    print(saveSubDir, end='\t', flush=True)
-                    #print('\n', saveSubDir, flush=True)
-                    if not os.path.exists(os.path.join(self.bootstrapDir, saveSubDir)):
-                        os.makedirs(os.path.join(self.bootstrapDir, saveSubDir))
-
-                    if saveSubDir == 'All':
-                        batches = df_measure.columns
-                    else:
-                        batches = np.random.choice(df_measure.columns, size=len(df_measure.columns), replace=True)
-
-                    np.savetxt(os.path.join(self.bootstrapDir, saveSubDir, 'batches.txt'), batches, fmt='%s')
-
-                    #print('\tAggregating', flush=True)
-                    df_measure_temp = pd.Series(data=np.nanmedian(df_measure[batches].values.copy(), axis=1, overwrite_input=True), index=df_measure.index)
-        
-                    #print('\tUnstacking', flush=True)
-                    df_measure_temp = df_measure_temp.unstack(0)
-
-                    #print('\tRecording', flush=True)
-                    df_measure_temp.to_hdf(os.path.join(self.bootstrapDir, saveSubDir, self.metricsFile), key=self.majorMetric, mode='a', complevel=4, complib='zlib')
-
-                    #print('\tPreparing gene stats')
-                    df_fraction_temp = df_fraction[batches]
-                    df_fraction_temp.columns = df_fraction_temp.columns + '_' + np.array(range(len(df_fraction_temp.columns))).astype(str)
-                    df_fraction_temp = df_fraction_temp.mean(axis=1)
-                    df_fraction_temp.to_hdf(os.path.join(self.bootstrapDir, saveSubDir, 'perGeneStats.h5'), key='df_fraction', mode='a', complevel=4, complib='zlib')
-
-                    df_median_expr_temp = df_median_expr[batches]
-                    df_median_expr_temp.columns = df_median_expr_temp.columns + '_' + np.array(range(len(df_median_expr_temp.columns))).astype(str)
-                    df_median_expr_temp = df_median_expr_temp.mean(axis=1)
-                    df_median_expr_temp.to_hdf(os.path.join(self.bootstrapDir, saveSubDir, 'perGeneStats.h5'), key='df_expression', mode='a', complevel=4, complib='zlib')
-
-                    se_count_temp = se_count[batches]
-                    se_count_temp.index = se_count_temp.index + '_' + np.array(range(len(se_count_temp.index))).astype(str)
-                    se_count_temp = se_count_temp.sort_values(ascending=False)
-                    se_count_temp.to_hdf(os.path.join(self.bootstrapDir, saveSubDir, 'perGeneStats.h5'), key='se_count', mode='a', complevel=4, complib='zlib')
-        
-                    np.savetxt(os.path.join(self.bootstrapDir, saveSubDir, 'size.txt'), [df_fraction_temp.shape[0], se_count_temp.sum()], fmt='%i')
-
-                    if not df_ranks is None:
-                        df_ranks_temp = df_ranks[batches]
-                        df_ranks_temp.columns = df_ranks_temp.columns + '_' + np.array(range(len(df_ranks_temp.columns))).astype(str)
-                        df_ranks_temp = df_ranks_temp.median(axis=1).sort_values()
-                        df_ranks_temp.to_hdf(os.path.join(self.bootstrapDir, saveSubDir, 'perGeneStats.h5'), key='df_ranks', mode='a', complevel=4, complib='zlib')
-
-                except Exception as exception:
-                    print(exception)
+            if parallel:
+                pool = multiprocessing.Pool(processes=self.nCPUs)
+                pool.map(self._forPrepareBootstrapExperiments, [(saveSubDir, df_ranks, df_measure, df_fraction, df_median_expr, se_count) for saveSubDir in saveSubDirs])
+                pool.close()
+                pool.join()
+            else:
+                for saveSubDir in saveSubDirs:
+                    self._forPrepareBootstrapExperiments((saveSubDir, df_ranks, df_measure, df_fraction, df_median_expr, se_count))
 
             print(flush=True)
 
@@ -1242,7 +1255,7 @@ class Analysis():
 
                         data = data[data > 0].sort_values()[:1000]
                         diffExpressedGenes = data.index
-                        data = -np.log(binomialEnrichmentProbability('data/PCN.txt', enriched_genes=diffExpressedGenes, target_genes=selGenes)['Binomial_Prob'].reindex(allGenes).values)
+                        data = -np.log(binomialEnrichmentProbability('PCN.txt', enriched_genes=diffExpressedGenes, target_genes=selGenes, PCNpath=self.PCNpath)['Binomial_Prob'].reindex(allGenes).values)
                     except:
                         data = np.zeros(len(allGenes))
 
@@ -1254,7 +1267,7 @@ class Analysis():
                             data = data[data > 0].sort_values()[:1000]
                             diffExpressedGenes = data.index
 
-                            data = -np.log(binomialEnrichmentProbability('data/PCN.txt', enriched_genes=diffExpressedGenes, target_genes=selGenes)['Binomial_Prob'].reindex(allGenes).values)
+                            data = -np.log(binomialEnrichmentProbability('PCN.txt', enriched_genes=diffExpressedGenes, target_genes=selGenes, PCNpath=self.PCNpath)['Binomial_Prob'].reindex(allGenes).values)
                         except:
                             pass
 
