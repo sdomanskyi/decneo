@@ -1,64 +1,71 @@
 from scRegulation.commonFunctions import *
 from scRegulation.analysisPipeline import Analysis
 
+if platform.system() == "Windows":
+    wdir = 'd:/Projects/A_Endothelial/VS/Endothelial/results/Alona_SRAs/'
+else:
+    wdir = '/mnt/research/piermarolab/Sergii/Alona_SRAs/'
+
 if __name__ == '__main__':
 
-    if platform.system()=="Windows":
-        wdir = 'd:/Projects/A_Endothelial/VS/Endothelial/results/Alona_SRAs/'
-    else:
-        wdir = '/mnt/research/piermarolab/Sergii/Alona_SRAs/'
+    cfile = 'results_Alona_SRAs.h5'
 
-    # Prepare SRA SRS cells counts
+    # Select SRAs to analyze
     if False:
-            df = pd.concat([pd.read_hdf(wdir + 'KDR.h5', key='Homo sapiens'), pd.read_hdf(wdir + 'KDR.h5', key='Mus musculus')], 
-                            keys=['Homo sapiens', 'Mus musculus'], names=['species'], axis=0, sort=False).reset_index()
-            df['SRA'] = df['batch'].str.split('_', expand=True)[0]
-            df['SRS'] = df['batch'].str.split('_', expand=True)[1]
-            df = df.drop(['batch', 'KDR'], axis=1).set_index(['SRA', 'SRS', 'species'])
-            df = df.groupby(level=['SRA', 'SRS', 'species']).count()
-            df = df.loc[df['cell'] >= 10]
-            df.columns = ['cells']
-            print(df)
+        df = pd.concat([pd.read_hdf(wdir + 'KDR.h5', key='Homo sapiens'), pd.read_hdf(wdir + 'KDR.h5', key='Mus musculus')], 
+                        keys=['Homo sapiens', 'Mus musculus'], names=['species'], axis=0, sort=False).reset_index()
+        df['SRA'] = df['batch'].str.split('_', expand=True)[0]
+        df['SRS'] = df['batch'].str.split('_', expand=True)[1]
+        df = df.drop(['batch', 'KDR'], axis=1).set_index(['SRA', 'SRS', 'species'])
+        df = df.groupby(level=['SRA', 'SRS', 'species']).count()
+        df = df.loc[df['cell'] >= 10]
+        df.columns = ['cells']
+        print(df)
 
-            # New PanglaoDB tissue associations
-            se = pd.read_excel(wdir + 'PanglaoDB_tissue_groups GP.xlsx', index_col=1)['New Groups'].str.replace('?', '')
-            se[se!=se] = se.index.values[se!=se]
-            tissueDict = se.to_dict()
+        # New PanglaoDB tissue associations
+        se = pd.read_excel(wdir + 'PanglaoDB_tissue_groups GP.xlsx', index_col=1)['New Groups'].str.replace('?', '')
+        se[se!=se] = se.index.values[se!=se]
+        tissueDict = se.to_dict()
 
-            dft = pd.read_excel('dev/PanglaoDBdata/df_cell_type_annotations.xlsx', index_col=[0,1,2], header=0, sheet_name='tissues')
-            dft['tissue'] = dft['tissue'].replace(tissueDict)
-            df['tissue'] = dft.loc[df.index]
-            df = df.reset_index().set_index(['tissue', 'species'])
+        dft = pd.read_excel('dev/PanglaoDBdata/df_cell_type_annotations.xlsx', index_col=[0,1,2], header=0, sheet_name='tissues')
+        dft['tissue'] = dft['tissue'].replace(tissueDict)
+        df['tissue'] = dft.loc[df.index]
+        df = df.reset_index().set_index(['tissue', 'species'])
 
-            dfc = df.set_index('SRA', append=True)
-            dfc['SRS count'] = dfc['SRS'].groupby(['tissue', 'species', 'SRA']).agg('unique').apply(len).reindex(dfc.index)
-            print(dfc)
+        dfc = df.set_index('SRA', append=True)
+        dfc['SRS count'] = dfc['SRS'].groupby(['tissue', 'species', 'SRA']).agg('unique').apply(len).reindex(dfc.index)
+        print(dfc)
 
-            writer = pd.ExcelWriter(wdir + 'Alona tissues counts S.xlsx')
-            dfc.to_excel(writer, 'Non-aggregated', merge_cells=False)
+        writer = pd.ExcelWriter(wdir + 'Alona tissues counts S.xlsx')
+        dfc.to_excel(writer, 'Non-aggregated', merge_cells=False)
 
-            dfc = dfc.groupby(['tissue', 'species', 'SRA']).agg({'SRS':'unique', 'cells':'sum', 'SRS count':'max'})
-            dfc['SRS'] = dfc['SRS'].apply(cleanListString)
-            print(dfc)
-            dfc.to_excel(writer, 'Aggregated', merge_cells=False)
+        dfc = dfc.groupby(['tissue', 'species', 'SRA']).agg({'SRS':'unique', 'cells':'sum', 'SRS count':'max'})
+        dfc['SRS'] = dfc['SRS'].apply(cleanListString)
+        print(dfc)
+        dfc.to_excel(writer, 'Aggregated', merge_cells=False)
 
-            df = pd.concat([df['SRA'].groupby(level=['tissue', 'species']).agg(lambda s: np.unique(s).shape[0]),
-                            df['SRS'].groupby(level=['tissue', 'species']).agg(lambda s: np.unique(s).shape[0]),
-                            df['cells'].groupby(level=['tissue', 'species']).sum()], axis=1, sort=False).unstack('species')
-            df.columns.names = ['measure', 'species']
-            df = df.reorder_levels(['species', 'measure'], axis=1).sort_index(axis=1)
-            print(df)
-            df.to_excel(writer, 'Summary', merge_cells=False)
+        df = pd.concat([df['SRA'].groupby(level=['tissue', 'species']).agg(lambda s: np.unique(s).shape[0]),
+                        df['SRS'].groupby(level=['tissue', 'species']).agg(lambda s: np.unique(s).shape[0]),
+                        df['cells'].groupby(level=['tissue', 'species']).sum()], axis=1, sort=False).unstack('species')
+        df.columns.names = ['measure', 'species']
+        df = df.reorder_levels(['species', 'measure'], axis=1).sort_index(axis=1)
+        print(df)
+        df.to_excel(writer, 'Summary', merge_cells=False)
 
-            writer.save()
+        writer.save()
 
-            exit()
-
-    if True:
+    # Analyze each SRA
+    if False:
         cases = pd.read_excel(wdir + 'Alona tissues counts.xlsx', sheet_name='Selected', index_col=[0,1,2], header=0)
-        cases = cases[cases['cells'] >= 100]
+        cases = cases[cases['cells'] >= 300]
         cases = cases['SRS'].str.replace(' ', '').str.split(',')
         print(cases)
+
+        ##cases = cases.iloc[:10]
+        ##cases = cases.iloc[10:20]
+        ##cases = cases.iloc[20:30]
+        ##cases = cases.iloc[30:40]
+        #cases = cases.iloc[40:]
 
         for (tissue, species, SRA), SRSs in cases.iteritems():
             print('\n', tissue, species, SRA, len(SRSs), flush=True)
@@ -70,6 +77,7 @@ if __name__ == '__main__':
         
             an = Analysis(**dict(args, workingDir=wdir + 'Alona %s %s %s/' % (tissue, species, SRA), otherCaseDir=allPanglaoDBmouse if species == 'Homo sapiens' else allPanglaoDBhuman))
 
+            # Prepare expression and DEG data
             if False:
                 if os.path.isfile(an.workingDir + 'results.png'):
                     continue
@@ -90,11 +98,10 @@ if __name__ == '__main__':
 
                     an.prepareDEG(df_EC, df_other)
 
+            # Run analysis pipeline
             if False:
                 an.preparePerBatchCase(exprCutoff=0.05)
                 an.prepareBootstrapExperiments(parallel=True)
-
-            if True:
                 an.analyzeBootstrapExperiments()
                 an.reanalyzeMain()
                 an.analyzeCombinationVariant('Avg combo3avgs')
@@ -104,7 +111,8 @@ if __name__ == '__main__':
                 an.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=20)  
                 an.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=20)  
 
-            if False:
+            # Collect results
+            if True:
                 name = '%s %s %s' % (tissue, species, SRA)
 
                 # Collect bootstrap counts for combo3 and combo4
@@ -112,31 +120,32 @@ if __name__ == '__main__':
                 b4 = pd.read_excel(an.workingDir + 'Avg combo4avgs_variant.xlsx', index_col=0)['Bootstrap']
                 b3.name = 'combo3'
                 b4.name = 'combo4'
-                b3.to_hdf('results_DCS_35_SRA.h5', key='combo3/b/%s' % name, mode='a', complevel=4, complib='zlib')
-                b4.to_hdf('results_DCS_35_SRA.h5', key='combo4/b/%s' % name, mode='a', complevel=4, complib='zlib')
+                b3.to_hdf(wdir + cfile, key='combo3/b/%s' % name, mode='a', complevel=4, complib='zlib')
+                b4.to_hdf(wdir + cfile, key='combo4/b/%s' % name, mode='a', complevel=4, complib='zlib')
 
                 # Collect max random values for combo3 and combo4
                 r3 = pd.read_excel(an.workingDir + 'random/combo3/se_distribution.xlsx', index_col=0)[0]
                 r4 = pd.read_excel(an.workingDir + 'random/combo4/se_distribution.xlsx', index_col=0)[0]
                 r3.name = 'combo3'
                 r4.name = 'combo4'
-                r3.to_hdf('results_DCS_35_SRA.h5', key='combo3/r/%s' % name, mode='a', complevel=4, complib='zlib')
-                r4.to_hdf('results_DCS_35_SRA.h5', key='combo4/r/%s' % name, mode='a', complevel=4, complib='zlib')
+                r3.to_hdf(wdir + cfile, key='combo3/r/%s' % name, mode='a', complevel=4, complib='zlib')
+                r4.to_hdf(wdir + cfile, key='combo4/r/%s' % name, mode='a', complevel=4, complib='zlib')
 
                 # Collect sub-peaks lists for combo3 and combo4
                 s3 = pd.read_excel(an.workingDir + 'All peaks Avg combo3avgs. nG8-nE30.xlsx', index_col=0)['genes'].str.replace(' ', '').str.split(',')
                 s4 = pd.read_excel(an.workingDir + 'All peaks Avg combo4avgs. nG8-nE30.xlsx', index_col=0)['genes'].str.replace(' ', '').str.split(',')
                 s3.name = 'combo3'
-                s3.to_hdf('results_DCS_35_SRA.h5', key='combo3/s/%s' % name, mode='a', complevel=4, complib='zlib')
-                s4.to_hdf('results_DCS_35_SRA.h5', key='combo4/s/%s' % name, mode='a', complevel=4, complib='zlib')
+                s3.to_hdf(wdir + cfile, key='combo3/s/%s' % name, mode='a', complevel=4, complib='zlib')
+                s4.to_hdf(wdir + cfile, key='combo4/s/%s' % name, mode='a', complevel=4, complib='zlib')
 
+    # Analyze all the results
     if False:
         def getDf(keys, combo, parameter, species):
 
             dfs = []
             for name in np.unique(keys.T[2]):
                 if species in name:
-                    b = pd.read_hdf('results_DCS_35_SRA.h5', key='/%s/%s/%s' % (combo, parameter, name))
+                    b = pd.read_hdf(wdir + cfile, key='/%s/%s/%s' % (combo, parameter, name))
                     b.name = name
                     dfs.append(b)
 
@@ -162,16 +171,29 @@ if __name__ == '__main__':
 
             plt.title(figName)
 
+            tissues = [c.split(' Homo sapiens ')[0] if 'Homo sapiens' in c else c.split(' Mus musculus ')[0] for c in df.columns]
+            dcolors = {c[1]:c[0] for c in list(enumerate(np.unique(tissues)))}
+            colors = {k: cm.jet(v/len(dcolors)) for k, v in dcolors.items()}
+            colors = [colors[t] for t in tissues]
+            colors = np.array(colors)[D['leaves']]
+
             ax = fig.add_axes([0.35, 0.3, 0.55, 0.4], frame_on=False)
             cmap = plt.cm.hot
             cmap.set_bad('grey')
-            im = ax.imshow(np.ma.array(df.values[:,D['leaves']], mask=np.isnan(df.values)), cmap=cmap, aspect='auto', interpolation='None', extent=(-0.5, df.shape[0] - 0.5, df.shape[1] - 0.5, -0.5))
+            sdata = np.ma.array(df.values[:,D['leaves']][D['leaves'],:], mask=np.isnan(df.values))
+            im = ax.imshow(sdata, cmap=cmap, aspect='auto', interpolation='None', extent=(-0.5, df.shape[0] - 0.5, df.shape[1] - 0.5, -0.5))
             ax.set_xticks(range(len(df.columns)))
             ax.set_yticks(range(len(df.columns)))
             ax.set_xticklabels(df.columns.values[D['leaves']])
-            ax.set_yticklabels(df.columns.values)
+            ax.set_yticklabels(df.columns.values[D['leaves']])
             ax.tick_params(axis='x', labelsize=8, width=0.25, length=1, rotation=90)
             ax.tick_params(axis='y', labelsize=8, width=0.25, length=1, rotation=0)
+
+            for i, tick in enumerate(plt.gca().get_xticklabels()):
+                tick.set_color(colors[i])
+
+            for i, tick in enumerate(plt.gca().get_yticklabels()):
+                tick.set_color(colors[i])
 
             ax = fig.add_axes([0.9, 0.5, 0.025, 0.25], frame_on=False)
             ax.set_xticks([])
@@ -182,44 +204,42 @@ if __name__ == '__main__':
             clb.ax.tick_params(labelsize=4)
 
             plt.savefig(figName, dpi=300)
+            plt.clf()
 
             return
 
-        keys = np.array([key.split('/')[1:] for key in KeysOfStore('results_DCS_35_SRA.h5')])
-
+        keys = np.array([key.split('/')[1:] for key in KeysOfStore(wdir + cfile)])
         for species in ['Mus musculus', 'Homo sapiens', 'SRA']:
             b3, b4 = getDf(keys, 'combo3', 'b', species), getDf(keys, 'combo4', 'b', species)
+            b3.to_excel(wdir + '%s b3.xlsx' % species)
+            b4.to_excel(wdir + '%s b4.xlsx' % species)
+            plotDf(b3.corr(), wdir + '%s b3.png' % species)
+            plotDf(b4.corr(), wdir + '%s b4.png' % species)
 
-            b3.to_excel('%s b3.xlsx' % species)
-            b4.to_excel('%s b4.xlsx' % species)
+    # Plots with UMAP layout
+    if True:
+        df3 = pd.read_excel(wdir + 'SRA b3.xlsx', index_col=0, header=0)
+        df4 = pd.read_excel(wdir + 'SRA b4.xlsx', index_col=0, header=0)
 
-            plotDf(b3.corr(), '%s b3.png' % species)
-            plotDf(b4.corr(), '%s b4.png' % species)
+        tissues = [c.split(' Homo sapiens ')[0] if 'Homo sapiens' in c else c.split(' Mus musculus ')[0] for c in df3.columns]
+        dcolors = {c[1]:c[0] for c in list(enumerate(np.unique(tissues)))}
+        colors = {k: cm.jet(v/len(dcolors)) for k, v in dcolors.items()}
+        colors = [colors[t] for t in tissues]
 
-            r3, r4 = getDf(keys, 'combo3', 'r', species), getDf(keys, 'combo4', 'r', species)
-            b3[b3 <= r3.max()] = 0.
-            b4[b4 <= r4.max()] = 0.
+        def pplot(coords, columns, saveName):
+            
+            plt.scatter(coords[0], coords[1])
 
-            plotDf(b3.corr(), '%s b3_cut.png' % species)
-            plotDf(b4.corr(), '%s b4_cut.png' % species)
+            for i, label in enumerate(columns):
+                plt.text(coords[0][i], coords[1][i], label, color=colors[i], fontsize=4).set_path_effects([path_effects.Stroke(linewidth=0.1, foreground='grey'), path_effects.Normal()])
 
-        # Plots with UMAP layout
-        if False:
-            df3 = pd.read_excel('for meeting 10 08 2020/b3.xlsx', index_col=0, header=0)
-            print(df3)
-            df4 = pd.read_excel('for meeting 10 08 2020/b4.xlsx', index_col=0, header=0)
-            print(df4)
+            plt.axis('off')
+            plt.savefig(saveName, dpi=300)
+            plt.clf()
 
-            import umap
+            return
 
-            coords3 = umap.UMAP(random_state=42).fit_transform(df3.values.T).T
-            plt.scatter(coords3[0], coords3[1])
-            for i, label in enumerate(df3.columns):
-                plt.text(coords3[0][i], coords3[1][i], label)
-            plt.show()
+        import umap
 
-            coords4 = umap.UMAP(random_state=42).fit_transform(df4.values.T).T
-            plt.scatter(coords4[0], coords4[1])
-            for i, label in enumerate(df4.columns):
-                plt.text(coords4[0][i], coords4[1][i], label)
-            plt.show()
+        pplot(umap.UMAP(random_state=42).fit_transform(df3.values.T).T, df3.columns, wdir + 'UMAP_b3.png')
+        pplot(umap.UMAP(random_state=42).fit_transform(df4.values.T).T, df4.columns, wdir + 'UMAP_b4.png')

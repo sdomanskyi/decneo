@@ -176,7 +176,7 @@ if __name__ == '__main__':
 
     #preparePerSampleDEgenes()
 
-    args = dict(genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC23, nCPUs=4 if platform.system()=="Windows" else 1, 
+    args = dict(genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC23, nCPUs=4 if platform.system()=="Windows" else 20, 
                 panels=['combo3avgs', 'combo4avgs', 'fraction', 'binomial', 'markers', 'top50'], nBootstrap=100, perEachOtherCase=True, PCNpath=os.path.join(os.path.dirname(__file__), 'data'))
 
     if platform.system()=="Windows":
@@ -200,27 +200,23 @@ if __name__ == '__main__':
     #anHuman.analyzeBootstrapExperiments()
 
     #anMouse.preparePerBatchCase(exprCutoff=0.05)
-    ##anMouse.prepareBootstrapExperiments()
-
-
-    anMouse.analyzeBootstrapExperiments()
+    #anMouse.prepareBootstrapExperiments(allDataToo=False)
+    #anMouse.analyzeBootstrapExperiments()
 
     #anHuman.analyzeBootstrapExperiments()
 
-    exit()
+    #anHuman.reanalyzeMain()
+    #anHuman.analyzeCombinationVariant('Avg combo3avgs')
+    #anHuman.analyzeCombinationVariant('Avg combo4avgs')
+    #anHuman.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=8, nE=30, fcutoff=0.5, width=50)
+    #anHuman.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=8, nE=30, fcutoff=0.5, width=50)
+    #anHuman.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=20)  
+    #anHuman.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=20)  
 
-    anHuman.reanalyzeMain()
-    anHuman.analyzeCombinationVariant('Avg combo3avgs')
-    anHuman.analyzeCombinationVariant('Avg combo4avgs')
-    anHuman.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=8, nE=30, fcutoff=0.5, width=50)
-    anHuman.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=8, nE=30, fcutoff=0.5, width=50)
-    anHuman.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=20)  
-    anHuman.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=20)  
-
-    anMouse.reanalyzeMain()
-    anMouse.analyzeCombinationVariant('Avg combo3avgs')
-    anMouse.analyzeCombinationVariant('Avg combo4avgs')
+    #anMouse.reanalyzeMain()
+    #anMouse.analyzeCombinationVariant('Avg combo3avgs')
+    #anMouse.analyzeCombinationVariant('Avg combo4avgs')
     anMouse.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=8, nE=30, fcutoff=0.5, width=50)
-    anMouse.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=8, nE=30, fcutoff=0.5, width=50)
-    anMouse.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=20)  
-    anMouse.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=20)  
+    #anMouse.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=8, nE=30, fcutoff=0.5, width=50)
+    #anMouse.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=20)  
+    #anMouse.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=20)  

@@ -8,21 +8,21 @@ cleanListString = lambda c: str(list(c)).replace(' ', '').replace("'", '').repla
 
 def movingAverageCentered(a, halfWindowSize, looped = False):
 
-    '''TEXT
+    '''Function to smooth a 1d signal
         
     Parameters:
         a: ndarray
-            TEXT
+            Input data
 
         halfWindowSize: int
-            TEXT
+            Size of half-window for averaging
 
         looped: boolean, Default False
-            TEXT
+            Determined looped behaviour at the boundaries
 
     Returns:
         ndarray
-            TEXT
+            Smoothed signal
 
     Usage:
         movingAverageCentered(a, halfWindowSize)
@@ -318,10 +318,10 @@ def get_df_distance(df, metric = 'correlation', genes = [], analyzeBy = 'batch',
             Minimum size of input pandas.DataFrame
 
         groupBatches: boolean, Default True 
-            TEXT 
+            Whether to group batched or save per-batch distance measure 
 
         pname: Default None
-            TEXT
+            Deprecated
 
         cutoff: float, Default 0.05
             Cutoff for percent expression of input data 
@@ -331,7 +331,7 @@ def get_df_distance(df, metric = 'correlation', genes = [], analyzeBy = 'batch',
 
     Returns:
         pandas.DataFrame 
-            TEXT
+            Distance measure
 
     Usage:
         get_df_distance(df)
@@ -388,20 +388,28 @@ def get_df_distance(df, metric = 'correlation', genes = [], analyzeBy = 'batch',
 
 def reduce(vIn, size = 100):
 
-    ''' TEXT
+    '''Interpolate data to reduce the number of data points
         
     Parameters:
-        vIn: TEXT
-            TEXT
+        vIn: 1d vector
+            Data to resample
 
         size: int, Default 100
-            TEXT
+            New data size
         
     Returns:
-        TEXT
+        Resampled data
 
     Usage:
         reduce(vIn)
+    '''
+
+    '''
+    def reduce(v, size = 100):
+
+        bins =  np.linspace(np.min(v), np.max(v), num=size)
+
+        return bins[np.digitize(v, bins) - 1]
     '''
 
     v = vIn.copy()
@@ -419,14 +427,14 @@ def reduce(vIn, size = 100):
 
 def metric_euclidean_missing(u, v):
 
-    '''Calculate euclidean distance between two arrays for metric 'euclidean_missing'
+    '''Metric of euclidean distance between two arrays, excluding missing points
         
     Parameters:
-        u: ndarray
-            //
+        u: 1d vector
+            Data array
 
-        v: ndarray
-            //
+        v: 1d vector
+            Data array
         
     Returns:
         ndarray 
@@ -519,11 +527,11 @@ def binomialEnrichmentProbability(nx_obj, enriched_genes, target_genes = False, 
 
 def getROC(data):
 
-    '''Calculate axes of ROC (false positive rates and true positive rates)
+    '''Calculate axes of ROC (false positive rates and true positive rates) using index as thresholds
         
     Parameters:
-        data: TEXT
-            TEXT
+        data: 1d vector
+            Input data
         
     Returns:
         np.array 
@@ -609,16 +617,16 @@ def testNumbersOfClusters(data, text = '', n_min = 2, n_max = 20, k = 10):
             Array of shape (features, objects)
 
         text: str, Default ''
-            TEXT
+            String identifier
 
         n_min: int, Default 2
-            TEXT
+            Minimum number of cluster
 
         n_max: int, Default 20 
-            TEXT
+            Maximum number of cluster
 
         k: int, Default 10 
-            TEXT
+            Number of iterations for each clusters number
 
     Usage: 
         testNumbersofClusters(data)
@@ -645,6 +653,23 @@ def testNumbersOfClusters(data, text = '', n_min = 2, n_max = 20, k = 10):
 
 def KeyInStore(key, file):
 
+    '''Check if a key present in HDF store file
+
+    Parameters:
+        key: str
+            The key to check
+
+        file: str
+            Path to HDF store file
+
+    Returns
+        True or False
+            Whether key is in store or not
+    
+    Usage:
+        KeyInStore(key, file)
+    '''
+
     try:
         with pd.HDFStore(file, mode='r') as hdf5file:
             if "/" + key.strip("/") in hdf5file.keys():
@@ -659,6 +684,20 @@ def KeyInStore(key, file):
 
 def KeysOfStore(file):
 
+    '''Get list of keys in HDF store file
+
+    Parameters:
+        file: str
+            Path to HDF store file
+
+    Returns
+        list
+           Keys
+    
+    Usage:
+        KeysOfStore(file)
+    '''
+
     try:
         with pd.HDFStore(file, mode='r') as hdf5file:
             return list(hdf5file.keys())
@@ -669,6 +708,25 @@ def KeysOfStore(file):
     return
 
 def downloadFile(url, saveDir, saveName = None):
+
+    '''Download a file from internet
+
+    Parameters:
+        url: str
+            URL to download from
+
+        saveDir: str
+            Path to save downloaded file to
+
+        saveName: str, Default None
+            New name for downloaded file
+
+    Returns
+        None
+    
+    Usage:
+        downloadFile(url, saveDir)
+    '''
 
     if not os.path.exists(saveDir): 
         os.makedirs(saveDir)
@@ -693,6 +751,28 @@ def downloadFile(url, saveDir, saveName = None):
     return
 
 def readRDataFile(fullPath, takeGeneSymbolOnly = True, saveToHDF = True, returnSizeOnly = False):
+
+    '''Read R data file
+
+    Parameters:
+        fullPath: str
+            Path to file
+
+        takeGeneSymbolOnly: boolean, Default True
+            Wether to save gene symbol only
+
+        saveToHDF: boolean, Default True
+            Wether to save data in HDF format
+
+        returnSizeOnly: boolean, Default False
+            Get data size and return, without reading the data itself
+
+    Returns
+        None
+    
+    Usage:
+        readRDataFile(path)
+    '''
 
     if (not returnSizeOnly) and os.path.isfile(fullPath):
         print('File already exists:', fullPath)
@@ -737,13 +817,7 @@ def readRDataFile(fullPath, takeGeneSymbolOnly = True, saveToHDF = True, returnS
         return df
 
     return df
-       
-def reduce(v, size = 100):
-
-    bins =  np.linspace(np.min(v), np.max(v), num=size)
-
-    return bins[np.digitize(v, bins) - 1]
-
+      
 def normSum1(data):
 
     w = np.nansum(data)

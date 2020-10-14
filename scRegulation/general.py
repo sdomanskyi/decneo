@@ -56,8 +56,11 @@ def write(data, fileName, jsonFormat = False):
     '''Pickle object into a (binary) file
         
     Parameters:
-        data: any Pyhton object, e.g. list, dictionary, file, method, variable, etc.
-        fileName: path and name of the file to store binary data in
+        data: object
+            Aany Pyhton object, e.g. list, dictionary, file, method, variable, etc.
+
+        fileName: str
+            Path and name of the file to store binary data in
         
     Returns:
         None
@@ -87,7 +90,8 @@ def read(fileName, jsonFormat = False):
     '''Unpickle object from a (binary) file
 
     Parameters:
-        fileName: path and name of the file with binary data stored in
+        fileName: str
+            Path and name of the file with binary data stored in
 
     Returns:
         Data stored in the provided file

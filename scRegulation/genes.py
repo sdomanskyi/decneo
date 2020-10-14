@@ -1,18 +1,21 @@
-'''  Holds genes used in scRegulation and converts genes to the correct format
+'''Module that holds genes lists and converts genes to the correct format
 '''
 
 from .general import *
 
 cwd = os.path.dirname(__file__)
-#print('cwd:', cwd)
 
+# Conversion of gene names from 'Mus musculus' to 'Homo sapiens'
 Mouse_to_Human_HUGO_conversion = read(os.path.join(cwd, 'geneLists/Mouse_to_Human_HUGO.gz'), jsonFormat=True)
 
+# Four main T cells regulators
 g4 = ['CD3D', 'CD28', 'CTLA4', 'PDCD1']
 
+# Known T cells inhibitors and stimulators
 g16 = ['CD3D','CD27','CD28','CD82','ICOS','CD226','TNFRSF18','TNFRSF9', # stimulators
        'CTLA4','PDCD1','LAG3','BTLA','HAVCR2','VSIR','TIGIT','CD96']    # inhibitors
 
+# Known endothelial cells inhibitors and stimulators
 gEC23 = ['KDR','FLT1','FLT4','NRP1','NRP2','FGFR1','FGFR2','FGFR3','CXCR2','ROBO1',
          'ROBO4','ENG','PDGFRA','PDGFRB','TEK','KIT','MET','CLEC14A', # stimulators
          'CD36','CD47','VLDLR','PLXND1'] # inhibitors # on 08/24/2020 removed 'PNPLA2', due to low evidence that 'PNPLA2' is a receptor
@@ -28,8 +31,10 @@ pubMedAngiogenesisHits = {'KDR': 1853, 'FLT1': 681, 'PDGFRB': 546, 'NRP1': 237, 
 gECs = gEC23[:18]
 gECi = gEC23[18:]
 
+# Receptors
 receptorsListHugo_2555 = np.loadtxt(os.path.join(cwd, 'geneLists/receptorsListHugo_2555.txt'), dtype=str).tolist()
 
+# Yamanaka factors
 OSKM = ['POU5F1', 'SOX2', 'KLF4', 'MYC'] # OCT4, KLF4, SOX2, c-Myc
 TFmarkers = OSKM + ['NANOG', 'GLIS1', 'NR5A2', 'SALL4'] # from 10.1152/physrev.00039.2017
 
