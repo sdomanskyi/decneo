@@ -43,7 +43,33 @@ data: Count file to find correlation and differential expression if diff_expr = 
       
 save_dir: Directory to save output files to.
 
-cell_list: List of endothelial cells i
+cell_list: List of endothelial cells if data is count file.
+
+n_samps: Number of pseudo samples to generate if data is count data.
+
+norm: Whether count data needs log scale normalization.
+
+genes1: Genes to use in correlation, all other genes will be left out.
+
+genes2: Target genes (receptors) to use in dendrogram and for final merged metric.
+
+seed: Random seed to use.
+
+itr: Number of bootstraps to genrate if data is not already bootstrapped.
+
+compare_dendro: Dendrogram data frame where index is genes "Dendrogram" column is the 
+                dendrogram position. If None analysis will stop after generating network
+                enrichment, percent expression and the dendrogram for the current data.
+                
+markers: Genes of interest to label in plots in downstream analysis.
+
+fraction: Minimum fraction of genes to be used in correlation.
+
+diff_expr: Dictionary of precomputed differential expression data frames. Columns must include 'avg_logFC'
+           to differentiate upregulated from downregulated genes. 'PCT.1' for using percent exprssion of 
+           the genes as a metric in merge metric. 'Q-Val' (adjusted P-Value) for prioritizing genes for the network.
+           
+need_bootstrap: Whether or not the data needs bootstrapping or if its a dictionary of bootrstapped data frames.
 
 """
 def pseudo_peak_process(data,
@@ -57,7 +83,6 @@ def pseudo_peak_process(data,
                         itr = 100,
                         compare_dendro=None,
                         markers = [],
-                        save_corr = False,
                         fraction=.05, 
                         diff_expr = None,
                         need_bootstrap = True):
