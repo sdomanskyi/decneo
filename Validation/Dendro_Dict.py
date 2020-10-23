@@ -70,8 +70,8 @@ diff_expr: Dictionary of precomputed differential expression data frames. Column
            the genes as a metric in merge metric. 'Q-Val' (adjusted P-Value) for prioritizing genes for the network.
            
 need_bootstrap: Whether or not the data needs bootstrapping or if its a dictionary of bootrstapped data frames.
-
 """
+
 def pseudo_peak_process(data,
                         save_dir,
                         cell_list = None,
@@ -275,7 +275,56 @@ def pseudo_peak_process(data,
     
     return  gene_stats_dict
     #genes = dendro_dict[k].sort_values("Dendrogram").index
-        
+ 
+
+"""
+Get Conservation, network enrichment and percent expression merged metrics 
+for the whole data set.
+
+If compare_dendro not given gets all metrics but conservation
+but calculates dendrogram. 
+
+If diff_expr != None data is assumed to be a dictionary of pre-computed correlation
+where the keys are the sample names and the values are correltion data frames.
+
+if need_bootstrap == False then diff_expr and data are already dictionaries
+
+Parameters:
+
+data: Count file to find correlation and differential expression if diff_expr = None. 
+      Dictionary of correlation data frames if diff_expr != None that are either
+      bootstraps or samples to be bootstrapped if need_bootstrap = True.
+      
+save_dir: Directory to save output files to.
+
+cell_list: List of endothelial cells if data is count file.
+
+n_samps: Number of pseudo samples to generate if data is count data.
+
+norm: Whether count data needs log scale normalization.
+
+genes1: Genes to use in correlation, all other genes will be left out.
+
+genes2: Target genes (receptors) to use in dendrogram and for final merged metric.
+
+seed: Random seed to use.
+
+itr: Number of bootstraps to genrate if data is not already bootstrapped.
+
+compare_dendro: Dendrogram data frame where index is genes "Dendrogram" column is the 
+                dendrogram position. If None analysis will stop after generating network
+                enrichment, percent expression and the dendrogram for the current data.
+                
+markers: Genes of interest to label in plots in downstream analysis.
+
+fraction: Minimum fraction of genes to be used in correlation.
+
+diff_expr: Dictionary of precomputed differential expression data frames. Columns must include 'avg_logFC'
+           to differentiate upregulated from downregulated genes. 'PCT.1' for using percent exprssion of 
+           the genes as a metric in merge metric. 'Q-Val' (adjusted P-Value) for prioritizing genes for the network.
+           
+"""
+
 def full_data_process(data_file,
                         save_dir,
                         cell_list,
@@ -285,7 +334,6 @@ def full_data_process(data_file,
                         seed =1,
                         compare_dendro=None,
                         markers = [],
-                        debug = False,
                         fraction = .05,
                         diff_expr = None):
     #data = pd.read_csv(data_file, index_col = 0)
