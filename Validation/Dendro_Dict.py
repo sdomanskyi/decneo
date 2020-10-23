@@ -70,6 +70,21 @@ diff_expr: Dictionary of precomputed differential expression data frames. Column
            the genes as a metric in merge metric. 'Q-Val' (adjusted P-Value) for prioritizing genes for the network.
            
 need_bootstrap: Whether or not the data needs bootstrapping or if its a dictionary of bootrstapped data frames.
+
+
+Output:
+
+gene_stats.pz: Pickle file of statistics for each bootstrap.
+
+Corr_BS: Folder of correlation for each sample/pseudo sample.
+
+Diff_BS: Folder of differential expression statistics for each sample/pseudo sample.
+
+BS_Corr_Dict.pzz: Dictionary of the correlation matrix of all the bootstrapped samples.
+
+Pseudo_Sample_Cells.csv: List of which endothelial cells are in each pseudo sample.
+
+Peak_Count: Count of how many times each gene appears in the peak.
 """
 
 def pseudo_peak_process(data,
@@ -322,7 +337,11 @@ fraction: Minimum fraction of genes to be used in correlation.
 diff_expr: Dictionary of precomputed differential expression data frames. Columns must include 'avg_logFC'
            to differentiate upregulated from downregulated genes. 'PCT.1' for using percent exprssion of 
            the genes as a metric in merge metric. 'Q-Val' (adjusted P-Value) for prioritizing genes for the network.
-           
+    
+    
+Output:
+
+gene_stats_Full: List of all statistics generated for each gene.
 """
 
 def full_data_process(data_file,
