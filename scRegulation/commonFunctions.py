@@ -139,10 +139,10 @@ def getGenesOfPeak(se, peak=None, heightCutoff = 0.5, maxDistance = None):
     if maxDistance is None:
         r = range(i0 + 1, i0 + 2*10**3, 1)
     else:
-        r = range(i0 + 1, i0 + maxDistance, 1)
+        r = range(i0 + 1, i0 + 1 + maxDistance, 1)
     for i in r:
         try:
-            if se.iloc[i] >= heightCutoff:
+            if se.iloc[i] >= (heightCutoff * se.iloc[peak]):
                 genes.append(se.index[i])
             else:
                 break
@@ -152,10 +152,10 @@ def getGenesOfPeak(se, peak=None, heightCutoff = 0.5, maxDistance = None):
     if maxDistance is None:
         r = range(i0 - 1, 0, -1)
     else:
-        r = range(i0 - 1, max(0, i0 - maxDistance), -1)
+        r = range(i0 - 1, max(0, i0 - 1 - maxDistance), -1)
     for i in r:
         try:
-            if se.iloc[i] >= heightCutoff:
+            if se.iloc[i] >= (heightCutoff * se.iloc[peak]):
                 genes.append(se.index[i])
             else:
                 break
@@ -164,7 +164,7 @@ def getGenesOfPeak(se, peak=None, heightCutoff = 0.5, maxDistance = None):
 
     return genes
 
-def getPeaks(se, threshold = 0.2, distance = 50):
+def getPeaks(se, threshold = 0.2, distance = 50, prominence = 0.05):
 
     '''Find peak regions 
         
@@ -187,7 +187,7 @@ def getPeaks(se, threshold = 0.2, distance = 50):
 
     se /= se.max()
 
-    peaks = scipy.signal.find_peaks(se.values, distance=distance)[0]
+    peaks = scipy.signal.find_peaks(np.hstack([0, se.values, 0]), distance=distance, prominence=prominence)[0] - 1
     peaks = peaks[se[peaks] >= threshold]
 
     return peaks
@@ -825,3 +825,65 @@ def normSum1(data):
         w = 1.
 
     return np.nan_to_num(data) / w
+
+def silhouette(data, n_clusters, cluster_labels):
+
+    u = np.unique(cluster_labels)
+    n_clusters = len(u)
+
+    df = pd.DataFrame(data=data, index=cluster_labels, columns=cluster_labels)
+    print(df)
+
+    print('DCS')
+    dft = pd.DataFrame()
+    for t in u:
+        temp = df.loc[df.index==t, df.columns==t].values
+        if temp.shape[0]>1:
+            inside = temp[np.triu_indices(temp.shape[0], 1)].mean()
+            outside = df.loc[df.index==t, df.columns!=t].values.mean()
+            print(t, '\t', temp.shape[0], '\t', np.round(inside, 2), '\t', np.round(outside, 2))
+
+    if type(cluster_labels[0]) in [str, np.str_]:
+        dnames = {i:l for i,l in enumerate(u)}
+        rdnames = {l:i for i,l in enumerate(u)}
+        cluster_labels = np.array([rdnames[l] for l in cluster_labels])
+
+    silhouette_avg = silhouette_score(data, cluster_labels)
+    sample_silhouette_values = silhouette_samples(data, cluster_labels)
+
+    fig, ax1 = plt.subplots(figsize=(7,7))
+
+    y_lower = 1
+    for i in range(n_clusters):
+        ith_cluster_silhouette_values = sample_silhouette_values[cluster_labels == i]
+        ith_cluster_silhouette_values.sort()
+        size_cluster_i = ith_cluster_silhouette_values.shape[0]
+        y_upper = y_lower + size_cluster_i
+        color = cm.nipy_spectral(float(i) / n_clusters)
+        ax1.fill_betweenx(np.arange(y_lower, y_upper),
+                          0, ith_cluster_silhouette_values,
+                          facecolor=color, edgecolor=color, alpha=0.7)
+        try:
+            label = str(dnames[i])
+        except:
+            label = str(i)
+
+        ax1.text(0., y_lower + 0.5 * size_cluster_i, '' + str(dnames[i]) + ', avg=' + str(np.round(np.mean(ith_cluster_silhouette_values), 2)) + ', max=' + str(np.round(np.max(ith_cluster_silhouette_values), 2)), fontsize=10, color='k', va='center', ha='center').set_path_effects([path_effects.Stroke(linewidth=1., foreground='white'), path_effects.Normal()])
+        y_lower = y_upper + 1
+
+    ax1.set_xlabel("Silhouette coefficient values")
+    ax1.set_xlim([min(sample_silhouette_values) - 0.1, max(sample_silhouette_values) + 0.1])
+    ax1.set_ylim([0, len(data) + (n_clusters + 1) * 1])
+
+    ax1.axvline(x=silhouette_avg, color="red", linestyle="--")
+    ax1.text(silhouette_avg + 0.025, ax1.get_ylim()[1], 'avg=' + str(np.round(silhouette_avg, 2)), color="red")
+
+    ax1.spines['left'].set_visible(False)
+    ax1.spines['right'].set_visible(False)
+    ax1.spines['top'].set_visible(False)
+    ax1.set_yticklabels([])
+    ax1.set_yticks([])
+
+    plt.show()
+
+    return

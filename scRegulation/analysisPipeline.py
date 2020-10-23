@@ -1699,7 +1699,7 @@ class Analysis():
             genes = []
             for experiment in np.unique(df_temp.index.get_level_values('experiment')):
                 se = df_temp.xs(experiment, level='experiment', axis=0)
-                peaksLists.update({(experiment, i): getGenesOfPeak(se, peak=peak, maxDistance=int(width/2)) for i, peak in enumerate(getPeaks(se, distance=width))})
+                peaksLists.update({(experiment, i, se.iloc[peak]): getGenesOfPeak(se, peak=peak, maxDistance=int(width/2)) for i, peak in enumerate(getPeaks(se, threshold = 0.05, prominence = 0.05, distance=width))})
                 genes.extend(se.index.values.tolist())
 
             return peaksLists, np.unique(genes)
@@ -1714,8 +1714,38 @@ class Analysis():
         df_m = pd.DataFrame(index=allgenes, data=0, columns=se_peakAssignments.index)
         for peak in df_m.columns:
             df_m.loc[se_peakAssignments.loc[peak].dropna().values, peak] = 1
-
+        
         df_m = df_m.loc[df_m.sum(axis=1) > 0]
+
+        se_heights = pd.Series(index=['E' + df_m.columns.get_level_values(0).str.split('Experiment ', expand=True).get_level_values(-1) + '.' + df_m.columns.get_level_values(1).astype(str)], data=df_m.columns.get_level_values(-1))
+        se_heights.index = se_heights.index.get_level_values(0)
+
+        if False:
+            se = df.xs('species', level='species', axis=0).copy().xs('Experiment 3', level='experiment')
+            fig, ax = plt.subplots(figsize=(8,2))
+            ax.plot(range(len(se)), se.values, color='coral', linewidth=1.5)
+
+            se_peaks = df_m.xs('Experiment 3', level=0, axis=1)
+            for peak in se_peaks:
+                se_peak = se_peaks[peak]
+                se_peak = se_peak[se_peak == 1]
+                x = np.where(np.isin(se.index.values, se_peak.index.values))[0]
+                y = se.iloc[x].values
+                ax.fill_between(x, y, facecolor='grey', edgecolor='grey', alpha=0.5)
+                ax.scatter(x[np.argmax(y)] - 1, max(y), facecolor='k', edgecolor='k', s=6., alpha=1., zorder=np.inf)
+
+            ax.set_xticks([])
+            ax.set_xticklabels([])
+            yticks = np.round(ax.get_ylim(), 2)
+            ax.set_yticks(yticks)
+            ax.set_yticklabels(yticks)
+            ax.tick_params(axis='y', labelsize=6, width=0.75, length=3)
+            ax.text(-0.04, 0.5, 'combo3', fontsize=8, rotation=90, va='center', ha='right', transform=ax.transAxes)
+            ax.set_xlim([0, len(se)])
+            ax.set_ylim([0, 0.02])
+
+            plt.show()
+            exit()
 
         Z1 = hierarchy.linkage(df_m, 'ward')
         Z2 = hierarchy.linkage(df_m.T, 'ward')
@@ -1735,22 +1765,68 @@ class Analysis():
         df_m.index = pd.MultiIndex.from_arrays([df_m.index, clusters1], names=['gene', 'cluster'])
         df_m.columns = pd.MultiIndex.from_arrays(['E' + df_m.columns.get_level_values(0).str.split('Experiment ', expand=True).get_level_values(-1) + '.' + df_m.columns.get_level_values(1).astype(str), clusters2], names=['peak', 'cluster'])
 
+        if False:
+            fig = plt.figure(figsize=(8, 10))
+            n_clusters = nG
+            ax = fig.add_axes([0.1, 0.25, 0.15, 0.5], frame_on=False)
+            origLineWidth = matplotlib.rcParams['lines.linewidth']
+            matplotlib.rcParams['lines.linewidth'] = 0.5
+            D = hierarchy.dendrogram(Z1, ax=ax, color_threshold=Z1[-n_clusters + 1][2], above_threshold_color='k', orientation='left')
+            matplotlib.rcParams['lines.linewidth'] = origLineWidth
+            ax.set_xticklabels([])
+            ax.set_xticks([])
+            ax.set_yticklabels([])
+            ax.set_yticks([])
+            ax.set_title('Genes')
+
+            n_clusters = nE
+            ax = fig.add_axes([0.25, 0.75, 0.5, 0.15], frame_on=False)
+            origLineWidth = matplotlib.rcParams['lines.linewidth']
+            matplotlib.rcParams['lines.linewidth'] = 0.5
+            D = hierarchy.dendrogram(Z2, ax=ax, color_threshold=Z2[-n_clusters + 1][2], above_threshold_color='k', orientation='top')
+            matplotlib.rcParams['lines.linewidth'] = origLineWidth
+            ax.set_xticklabels([])
+            ax.set_xticks([])
+            ax.set_yticklabels([])
+            ax.set_yticks([])
+            ax.set_title('Peaks')
+
+            ax = fig.add_axes([0.25, 0.25, 0.5, 0.5], frame_on=False)
+            im = ax.imshow(df_m.values, cmap=plt.cm.Greens, aspect='auto', interpolation='None', extent=(-0.5, df_m.shape[0] - 0.5, df_m.shape[1] - 0.5, -0.5))
+            ax.set_xticklabels([])
+            ax.set_xticks([])
+            ax.set_yticklabels([])
+            ax.set_yticks([])
+            
+            plt.show()
+            exit()
+
+        we = pd.Series(index=df_m.columns, data=se_heights[df_m.columns.get_level_values(0)].values).droplevel(1) # 570 peaks
         ndict = dict()
-        res = dict()
+        resf = dict()
+        resh = dict()
         for ci in df_m.index.levels[-1]:
             for cj in df_m.columns.levels[-1]:
                 df_temp = df_m.xs(ci, level='cluster', axis=0).xs(cj, level='cluster', axis=1)
                 m = df_temp.values.mean()
                 if m >= fcutoff:
-                    res[(ci, cj)] = df_temp.shape[1]
+                    resf[(ci, cj)] = df_temp.shape[1]
+                    resh[(ci, cj)] = we[df_temp.columns].mean()
+
                     ndict[ci] = cleanListString(sorted(df_temp.index.values.tolist()))
 
-        se = pd.Series(res).groupby(level=0).sum()
-        se.name = 'frequency'
+        sef = pd.Series(resf)
+        sed = pd.Series(index=sef.index, data=sef.groupby(level=0).sum().reindex(sef.droplevel(1).index).values)
+        seh = pd.Series(resh) * sef / sed
 
+        se = pd.Series(resf).groupby(level=0).sum()
+        se.name = 'frequency'
         df = se.to_frame()
+        df['height'] = seh.groupby(level=0).mean()
         df['genes'] = pd.Series(se.index).replace(ndict).values
+        df['length'] = df['genes'].str.split(', ').map(len)
         df['frequency'] = np.zeros(len(df['frequency']))
+        df = df[['frequency', 'height', 'length', 'genes']]
 
         for i, group in enumerate(df['genes'].values):
             group = group.split(', ')
@@ -1759,7 +1835,7 @@ class Analysis():
 
         df = df.sort_values(by='frequency', ascending=False)
         print(df)
-        
-        df.to_excel(self.workingDir + 'All peaks %s. nG%s-nE%s.xlsx' % (variant, nG, nE), index=False)
+
+        df.to_excel(self.workingDir + 'All peaks %s.xlsx' % variant, index=False)
 
         return

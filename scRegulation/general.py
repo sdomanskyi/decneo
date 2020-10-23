@@ -24,7 +24,7 @@ import matplotlib.patheffects as path_effects
 #from plotly.subplots import make_subplots
 
 from sklearn.cluster import AgglomerativeClustering, KMeans, SpectralCoclustering
-from sklearn.metrics import adjusted_rand_score, f1_score, roc_curve, auc, roc_auc_score
+from sklearn.metrics import adjusted_rand_score, f1_score, roc_curve, auc, roc_auc_score, silhouette_samples, silhouette_score
 from scipy.cluster import hierarchy
 from adjustText import adjust_text
 #from sknetwork.hierarchy import Paris, LouvainHierarchy

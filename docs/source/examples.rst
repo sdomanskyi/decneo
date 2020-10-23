@@ -2,6 +2,6 @@
 ============
 
 
-.. literalinclude:: ../../bootstrapLung.py
+.. literalinclude:: ../../scripts/bootstrapLung.py
 
 

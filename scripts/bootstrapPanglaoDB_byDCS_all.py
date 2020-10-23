@@ -1,4 +1,4 @@
-from scRegulation.commonFunctions import MetadataDirName, receptorsListHugo_2555, gEC23
+from scRegulation.commonFunctions import *
 from scRegulation.analysisPipeline import Analysis
 
 def preparePerSampleDEgenes():
@@ -129,31 +129,31 @@ if __name__ == '__main__':
     dirMouse = '/mnt/home/domansk6/Projects/Endothelial/results/PanglaoDB_byDCS_mouse/'
 
     anHuman = Analysis(**dict(args, workingDir=dirHuman, otherCaseDir=dirMouse))
-    prepareInput(anHuman.dataSaveName, 'Homo sapiens')
-    anHuman.preparePerBatchCase(exprCutoff=0.05)
-    anHuman.prepareBootstrapExperiments()
-    anHuman.analyzeBootstrapExperiments()
+    #prepareInput(anHuman.dataSaveName, 'Homo sapiens')
+    #anHuman.preparePerBatchCase(exprCutoff=0.05)
+    #anHuman.prepareBootstrapExperiments()
+    #anHuman.analyzeBootstrapExperiments()
 
     anMouse = Analysis(**dict(args, workingDir=dirMouse, otherCaseDir=dirHuman))
-    prepareInput(anMouse.dataSaveName, 'Mus musculus')
-    anMouse.preparePerBatchCase(exprCutoff=0.05)
-    anMouse.prepareBootstrapExperiments()
-    anMouse.analyzeBootstrapExperiments()
+    #prepareInput(anMouse.dataSaveName, 'Mus musculus')
+    #anMouse.preparePerBatchCase(exprCutoff=0.05)
+    #anMouse.prepareBootstrapExperiments()
+    #anMouse.analyzeBootstrapExperiments()
 
-    anHuman.analyzeBootstrapExperiments()
+    #anHuman.analyzeBootstrapExperiments()
 
-    anHuman.reanalyzeMain()
-    anHuman.analyzeCombinationVariant('Avg combo3avgs')
-    anHuman.analyzeCombinationVariant('Avg combo4avgs')
-    anHuman.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=8, nE=30, fcutoff=0.5, width=50)
-    anHuman.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=8, nE=30, fcutoff=0.5, width=50)
-    anHuman.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=20)  
-    anHuman.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=20)  
+    #anHuman.reanalyzeMain()
+    #anHuman.analyzeCombinationVariant('Avg combo3avgs')
+    #anHuman.analyzeCombinationVariant('Avg combo4avgs')
+    anHuman.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=15, nE=30, fcutoff=0.5, width=50)
+    anHuman.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=15, nE=30, fcutoff=0.5, width=50)
+    #anHuman.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=20)  
+    #anHuman.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=20)  
 
-    anMouse.reanalyzeMain()
-    anMouse.analyzeCombinationVariant('Avg combo3avgs')
-    anMouse.analyzeCombinationVariant('Avg combo4avgs')
-    anMouse.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=8, nE=30, fcutoff=0.5, width=50)
-    anMouse.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=8, nE=30, fcutoff=0.5, width=50)
-    anMouse.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=20)  
-    anMouse.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=20)  
+    #anMouse.reanalyzeMain()
+    #anMouse.analyzeCombinationVariant('Avg combo3avgs')
+    #anMouse.analyzeCombinationVariant('Avg combo4avgs')
+    anMouse.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=15, nE=30, fcutoff=0.5, width=50)
+    anMouse.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=15, nE=30, fcutoff=0.5, width=50)
+    #anMouse.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=20)  
+    #anMouse.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=20)  

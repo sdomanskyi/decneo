@@ -19,8 +19,8 @@ For development and testing of the documentation locally (on the development mac
 
 	$ pip install -U sphinx
 
-To compile html version of the documentation go to docs/ directory and run:
+To compile html version of the documentation:
 
-	$ sphinx-build -E -a -b html ./source ./build
+	$ sphinx-build -E -a -b html ./docs/source ./docs/build
 
 We are utilizing a 3rd party Sphinx extension sphinxcontrib-images extension, allowing to display documentation images in a organized way.

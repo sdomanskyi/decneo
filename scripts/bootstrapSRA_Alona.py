@@ -138,44 +138,66 @@ if __name__ == '__main__':
                 s3.to_hdf(wdir + cfile, key='combo3/s/%s' % name, mode='a', complevel=4, complib='zlib')
                 s4.to_hdf(wdir + cfile, key='combo4/s/%s' % name, mode='a', complevel=4, complib='zlib')
 
+
+
     # Analyze all the results
-    if False:
-        def getDf(keys, combo, parameter, species):
+    if True:
+        def getDf(keys, combo, parameter, species, peaks=False):
 
             dfs = []
             for name in np.unique(keys.T[2]):
                 if species in name:
                     b = pd.read_hdf(wdir + cfile, key='/%s/%s/%s' % (combo, parameter, name))
-                    b.name = name
+
+                    if peaks:
+                        b.name = 'peaks'
+                        b = pd.concat([b.to_frame()], axis=0, keys=[name])
+                    else:
+                        b.name = name
+
                     dfs.append(b)
 
-            dfs = pd.concat(dfs, axis=1, sort=False).fillna(0.)
+            if peaks:
+                dfs = pd.concat(dfs, axis=0, sort=False).fillna(0.)
+                dfs['peaks'] = dfs['peaks'].apply(cleanListString)
+            else:
+                dfs = pd.concat(dfs, axis=1, sort=False).fillna(0.)
             print(dfs.shape)
 
             return dfs
 
-        def plotDf(df, figName):
+        def plotDf(df, figName, n_clusters = 10):
             fig = plt.figure(figsize=(8,10))
 
-            n_clusters = 10
             ax = fig.add_axes([0.35, 0.7, 0.55, 0.15], frame_on=False)
-            Z = hierarchy.linkage(np.nan_to_num(df.values, nan=df.values.max()), method='ward', optimal_ordering=True)
+
+            data = np.nan_to_num(df.values, nan=df.values.max())
+            Z = hierarchy.linkage(data, method='ward', optimal_ordering=True)
             origLineWidth = matplotlib.rcParams['lines.linewidth']
             matplotlib.rcParams['lines.linewidth'] = 0.5
-            D = hierarchy.dendrogram(Z, ax=ax, color_threshold=0, above_threshold_color='k', orientation='top')
+            # color_threshold = (Z[-n_clusters,2] + Z[-n_clusters+1,2]) / 2
+            D = hierarchy.dendrogram(Z, ax=ax, color_threshold = 0, above_threshold_color='k', orientation='top')
             matplotlib.rcParams['lines.linewidth'] = origLineWidth
             ax.set_xticklabels([])
             ax.set_xticks([])
             ax.set_yticklabels([])
             ax.set_yticks([])
 
-            plt.title(figName)
-
             tissues = [c.split(' Homo sapiens ')[0] if 'Homo sapiens' in c else c.split(' Mus musculus ')[0] for c in df.columns]
             dcolors = {c[1]:c[0] for c in list(enumerate(np.unique(tissues)))}
             colors = {k: cm.jet(v/len(dcolors)) for k, v in dcolors.items()}
             colors = [colors[t] for t in tissues]
             colors = np.array(colors)[D['leaves']]
+
+            #cluster_labels = scipy.cluster.hierarchy.fcluster(Z, t=n_clusters, criterion='maxclust')[D['leaves']] - 1
+            cluster_labels = np.array(tissues)[D['leaves']]
+
+            #for label in np.unique(cluster_labels):
+            #    pos = 5. + 10. * np.where(cluster_labels==label)[0].mean()
+            #    ax.text(pos, 0.3, str(label), color='blue', fontsize=14, va='center', ha='center').set_path_effects([path_effects.Stroke(linewidth=1.5, foreground='grey'), path_effects.Normal()])
+
+            #plt.title(figName)
+
 
             ax = fig.add_axes([0.35, 0.3, 0.55, 0.4], frame_on=False)
             cmap = plt.cm.hot
@@ -205,19 +227,35 @@ if __name__ == '__main__':
 
             plt.savefig(figName, dpi=300)
             plt.clf()
+            plt.close()
 
-            return
+            return df.values[:,D['leaves']][D['leaves'],:], n_clusters, cluster_labels
 
         keys = np.array([key.split('/')[1:] for key in KeysOfStore(wdir + cfile)])
-        for species in ['Mus musculus', 'Homo sapiens', 'SRA']:
-            b3, b4 = getDf(keys, 'combo3', 'b', species), getDf(keys, 'combo4', 'b', species)
-            b3.to_excel(wdir + '%s b3.xlsx' % species)
-            b4.to_excel(wdir + '%s b4.xlsx' % species)
-            plotDf(b3.corr(), wdir + '%s b3.png' % species)
-            plotDf(b4.corr(), wdir + '%s b4.png' % species)
+        for species in ['Mus musculus', 'Homo sapiens', 'SRA'][-1:]:
+            if False:
+                s3, s4 = getDf(keys, 'combo3', 's', species, True), getDf(keys, 'combo4', 's', species, True)
+                s3.to_excel(wdir + '%s s3.xlsx' % species, merge_cells=False)
+                s4.to_excel(wdir + '%s s4.xlsx' % species, merge_cells=False)
+
+            if False:
+                r3, r4 = getDf(keys, 'combo3', 'r', species), getDf(keys, 'combo4', 'r', species)
+                r3.to_excel(wdir + '%s r3.xlsx' % species)
+                r4.to_excel(wdir + '%s r4.xlsx' % species)
+
+            if True:
+                b3, b4 = getDf(keys, 'combo3', 'b', species), getDf(keys, 'combo4', 'b', species)
+                b3.to_excel(wdir + '%s b3.xlsx' % species)
+                b4.to_excel(wdir + '%s b4.xlsx' % species)
+                c3 = plotDf(b3.corr(), wdir + '%s b3.png' % species, n_clusters=6)
+                c4 = plotDf(b4.corr(), wdir + '%s b4.png' % species, n_clusters=6)
+
+                silhouette(*c3)
+
+                exit()
 
     # Plots with UMAP layout
-    if True:
+    if False:
         df3 = pd.read_excel(wdir + 'SRA b3.xlsx', index_col=0, header=0)
         df4 = pd.read_excel(wdir + 'SRA b4.xlsx', index_col=0, header=0)
 

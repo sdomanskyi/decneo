@@ -12,6 +12,7 @@ TEXT TEXT TEXT.
    gettingStarted
    mainClass
    commonFunctions
+   dependency
    genes
    data
    examples
