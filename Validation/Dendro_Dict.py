@@ -306,39 +306,39 @@ if need_bootstrap == False then diff_expr and data are already dictionaries
 
 Parameters:
 
-data: Count file to find correlation and differential expression if diff_expr = None. 
-      Dictionary of correlation data frames if diff_expr != None that are either
-      bootstraps or samples to be bootstrapped if need_bootstrap = True.
-      
-save_dir: Directory to save output files to.
+      data: Count file to find correlation and differential expression if diff_expr = None. 
+            Dictionary of correlation data frames if diff_expr != None that are either
+            bootstraps or samples to be bootstrapped if need_bootstrap = True.
 
-cell_list: List of endothelial cells if data is count file.
+      save_dir: Directory to save output files to.
 
-n_samps: Number of pseudo samples to generate if data is count data.
+      cell_list: List of endothelial cells if data is count file.
 
-norm: Whether count data needs log scale normalization.
+      n_samps: Number of pseudo samples to generate if data is count data.
 
-genes1: Genes to use in correlation, all other genes will be left out.
+      norm: Whether count data needs log scale normalization.
 
-genes2: Target genes (receptors) to use in dendrogram and for final merged metric.
+      genes1: Genes to use in correlation, all other genes will be left out.
 
-seed: Random seed to use.
+      genes2: Target genes (receptors) to use in dendrogram and for final merged metric.
 
-itr: Number of bootstraps to genrate if data is not already bootstrapped.
+      seed: Random seed to use.
 
-compare_dendro: Dendrogram data frame where index is genes "Dendrogram" column is the 
-                dendrogram position. If None analysis will stop after generating network
-                enrichment, percent expression and the dendrogram for the current data.
-                
-markers: Genes of interest to label in plots in downstream analysis.
+      itr: Number of bootstraps to genrate if data is not already bootstrapped.
 
-fraction: Minimum fraction of genes to be used in correlation.
+      compare_dendro: Dendrogram data frame where index is genes "Dendrogram" column is the 
+                      dendrogram position. If None analysis will stop after generating network
+                      enrichment, percent expression and the dendrogram for the current data.
 
-diff_expr: Dictionary of precomputed differential expression data frames. Columns must include 'avg_logFC'
-           to differentiate upregulated from downregulated genes. 'PCT.1' for using percent exprssion of 
-           the genes as a metric in merge metric. 'Q-Val' (adjusted P-Value) for prioritizing genes for the network.
-    
-    
+      markers: Genes of interest to label in plots in downstream analysis.
+
+      fraction: Minimum fraction of genes to be used in correlation.
+
+      diff_expr: Dictionary of precomputed differential expression data frames. Columns must include 'avg_logFC'
+                 to differentiate upregulated from downregulated genes. 'PCT.1' for using percent exprssion of 
+                 the genes as a metric in merge metric. 'Q-Val' (adjusted P-Value) for prioritizing genes for the network.
+
+
 Output:
 
 gene_stats_Full: List of all statistics generated for each gene.
@@ -469,7 +469,15 @@ def full_data_process(data_file,
 """
 Finds genes located in a peak based on the first column of a data frame.
 
-df: Series to find the 
+
+Parameters:
+
+      df: Data frame to get peak from.
+
+Output:
+
+      Index of peak genes.
+
 """
 def get_peak (df, thresh = .5):
     
@@ -492,7 +500,23 @@ def get_peak (df, thresh = .5):
     return df.iloc[botidx:topidx].index    
 
 
+"""
+Splits columns into random equally sized lists.
 
+Pameteres:
+
+      col_list: List of columns to split.
+      
+      n_parts: Number of parts to split columns into
+      
+      itr: Number of times to generate random partitions.
+      
+      seed: Random seed to set.
+      
+output:
+
+      cross_valid_columns: List of all the partitions
+"""
 def get_cross_valid_cols(col_list,n_parts=10,itr = 1, seed = 1):
     cross_valid_columns=[]
     random.seed(seed)
@@ -503,6 +527,22 @@ def get_cross_valid_cols(col_list,n_parts=10,itr = 1, seed = 1):
         
     return cross_valid_columns 
  
+"""
+Get bootstrap of columns list.
+
+Parameter:
+
+      col_list: Columns list to sample from.
+      
+      n:  Number of elements to select in each bootstrap. Default is length of col_list.
+      
+      itr: Number of bootstraps to perform.
+      
+      seed: Random seed to set
+
+output:
+      cross_valid_columns: List of bootstrapped Columns.
+"""
 def get_bootstrap(col_list,n=None,itr = 100, seed = 1):
     cross_valid_columns=[]
     random.seed(seed)
@@ -513,120 +553,18 @@ def get_bootstrap(col_list,n=None,itr = 100, seed = 1):
         cross_valid_columns.append(np.random.choice(rand_cols,n))
         
     return cross_valid_columns 
-    
-def read_corr(data_dir, annot_file):
-    med_corr_dict_ser_cv = {}
-    med_corr_dict_ser = {}
 
-    gene_count = pd.DataFrame()
-    data_dir = "Merge_Corr4/"
-    for f in os.listdir(data_dir):
+"""
+Compute data frame for each correlation data frame in med_corr_dict and return as a dictionary of dendrogram data frames.
 
-        gene = f.split("_")[0]
-            
-        curr_df = pd.read_csv(os.path.join(data_dir,f),index_col=0)
-        df_dict = {}
-        df_dict["Human"] = curr_df.loc[:,curr_df.columns.str.contains("Homo")]
-        df_dict["Mouse"] = curr_df.loc[:,curr_df.columns.str.contains("Mus")]
-        print(f)
-        for key in df_dict:
-            df = df_dict[key]
-            df.columns = ["_".join(x.split("_")[:2]) for x in df.columns]
-            df = df.loc[(~df.isna()).astype(int).sum(axis=1) >3]
+Parameters:
 
-            gene_count.loc[f,"Count"] = df.shape[1]
-
-            if df.shape[0] ==0: continue
-
-
-            if key not in med_corr_dict_ser:
-                med_corr_dict_ser[key] = {}
-
-            med_corr_dict_ser[key][gene] = pd.DataFrame(df.median(axis=1).values,df.index,[gene])
-            
-       
-            cv = bs_ser_dict[key]
-            
-            for i in range(len(cv)): 
-                curr_cv = [x for x in cv[i] if x in df.columns]
-                if key not in med_corr_dict_ser_cv:
-                    med_corr_dict_ser_cv[key] = {}
-
-                if i not in med_corr_dict_ser_cv[key]:
-                    med_corr_dict_ser_cv[key][i] = {}
-               
-                med_corr_dict_ser_cv[key][i][gene] = pd.DataFrame(df[curr_cv].fillna(0).median(axis=1).values, df.index,[gene])
-            
-            
-            
-def read_corr_BS(data_dir, annot_file, itr = 100, n = None, seed =1):
-
-    annot_df = pd.read_excel(annot_file, index_col = [0,1,2])
-    mouse_srs = set(annot_df.loc[(annot_df["Species"]=="Mus musculus")&(annot_df["Cell type annotation"] == 'Endothelial cells')].index.get_level_values("SRS accession"))
-    human_srs = set(annot_df.loc[(annot_df["Species"]=="Homo sapiens")&(annot_df["Cell type annotation"] == 'Endothelial cells')].index.get_level_values("SRS accession"))
-    mouse_col = [annot_df.loc[annot_df.index.get_level_values("SRS accession")==x].index.get_level_values("SRA accession")[0] +"_" + x for x in mouse_srs]
-    human_col = [annot_df.loc[annot_df.index.get_level_values("SRS accession")==x].index.get_level_values("SRA accession")[0] +"_" + x for x in human_srs]
-    mouse_col =  list(set(mouse_col))
-    human_col = list(set(human_col))
-    print(len(human_col), len(mouse_col))
-    
-    mouse_cv = get_bootstrap(mouse_col, n, itr, seed)
-    human_cv = get_bootstrap(human_col, n, itr, seed)
-    
-    med_corr_dict_cv = {}
-    med_corr_dict = {}
-
-    gene_count = pd.DataFrame()
-    data_dir = "Merge_Corr_TF/"
-    count = 0
-    for f in os.listdir(data_dir):
-        
-        count += 1
-        print(f)
-        
-        gene = f.split("_")[0]
-            
-        if "Mouse" in f:
-            key="Mouse"
-            cv = mouse_cv
-        else:
-            key = "Human"
-            cv = human_cv
-
-        df = pd.read_csv(os.path.join(data_dir,f), index_col=0)
-        
-        if ("Human" in key):
-            df = df.loc[(~df.isna()).astype(int).sum(axis=1) >3]
-            
-        if (df.shape[1] < 10 and "Mouse" in key):
-            df = df.loc[(~df.isna()).astype(int).sum(axis=1) >3]
-        
-        gene_count.loc[f,"Count"] = df.shape[1]
-        
-        if df.shape[0] ==0: continue
-        
-        
-        if key not in med_corr_dict:
-            med_corr_dict[key] = {}
-            
-        med_corr_dict[key][gene] = pd.DataFrame(df.median(axis=1).values,df.index,[gene])
-        
-        for i in range(len(cv)): 
-            curr_cv = [x for x in cv[i] if x in df.columns]
-            if key not in med_corr_dict_cv:
-                med_corr_dict_cv[key] = {}
-            
-            if i not in med_corr_dict_cv[key]:
-                med_corr_dict_cv[key][i] = {}
-
-            med_corr_dict_cv[key][i][gene] = pd.DataFrame(df[curr_cv].median(axis=1).values, df.index, [gene])
-
-    for k in med_corr_dict_cv:
-        med_corr_dict[k] = pd.concat(med_corr_dict[k].values(), axis=1)
-        for i in med_corr_dict_cv[k]:
-            med_corr_dict_cv[k][i] = pd.concat(med_corr_dict_cv[k][i].values(), axis=1)
-
-    return med_corr_dict,med_corr_dict_cv
+      med_corr_dict: Dictionary of correlation data frames to compute dendrograms for.
+      
+      curr_goi: Genes to label in dendrogram plots produced.
+      
+      BS: Whether or not the data is bootstrapped or not.
+"""
    
 def get_dendro_dict(med_corr_dict, curr_goi, BS = False):
     #dendro_dict_cv = {}
