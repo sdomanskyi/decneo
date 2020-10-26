@@ -19,8 +19,8 @@ import plotting_08_02_2020_from_SD as pl_plot
 reload(ca)
 reload(dendro_code)
 reload(pl_plot)
-#pcn = nx.read_edgelist("E:/Alex_MM_tmp/salgomed_Alex/Parcimonius_Composite_Network/PCN.txt")
-pcn = nx.read_edgelist("../../PCN.txt")
+pcn = nx.read_edgelist("../Data/PCN.txt")
+#pcn = nx.read_edgelist("../../PCN.txt")
 
 """
 Get Conservation, network enrichment and percent expression merged metrics 
