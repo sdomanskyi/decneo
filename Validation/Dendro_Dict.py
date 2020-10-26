@@ -466,7 +466,11 @@ def full_data_process(data_file,
     
     return  gene_stats_df
             
-        
+"""
+Finds genes located in a peak based on the first column of a data frame.
+
+df: Series to find the 
+"""
 def get_peak (df, thresh = .5):
     
     max_idx = df.idxmax()
