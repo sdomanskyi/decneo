@@ -1,5 +1,6 @@
 import sys
 sys.path.append(".")
+sys.path.append("../scRegulation/")
 sys.path.append("/mnt/home/paterno1/anaconda3/lib/python3.7/site-packages/")
 #sys.path.append("/mnt/home/paterno1/anaconda3/lib/python3.7/site-packages/tables")
 #sys.path.append("../bin")
