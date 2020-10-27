@@ -588,7 +588,22 @@ def get_dendro_dict(med_corr_dict, curr_goi, BS = False):
                                 genesSubset=curr_goi,
                                 inhLoc=18)
                 plt.close()
-    return dendro_dict                        
+    return dendro_dict  
+
+"""
+Get dendrogram distance for each dendrogram dataframe in the dictionary and return as a dictionary of 
+distance dataframes.
+
+Parameteres:
+      
+      dendro_dict: Dictionary of dendrograms to compute distances from.
+      
+      BS: Whether the dictionary is a dictionary of bootstrapped data or not.
+      
+Output:
+
+      dendro_dist_dict: Dictionary of dendrogram distances.
+"""
 def get_dendro_dist_dict(dendro_dict, BS = False): 
     count = 0
     if not BS:
@@ -624,208 +639,22 @@ def get_dendro_dist_dict(dendro_dict, BS = False):
         dendro_dist_dict[k][k2] = pd.DataFrame(dendro_dist_dict[k][k2], index=genes,columns = genes)
         
     return dendro_dist_dict
-#dendro_dist_dict_cv[k][0].head()
-def get_expr_BN(curr_dir, background=None, net = pcn,  bs_dict = None):
 
-    curr_dir = "Endo_Diff_Merge/"
-    srs_dict = {"Mouse":mouse_col,
-             "Human":human_col}
-    bs_dict = {"Mouse":mouse_cv,
-             "Human":human_cv}
+"""
+Get the conservation for each gene based on dendrogram distance.
 
-    expr_dicts = {"LFC":{},
-                  "P-Val":{},
-                  "Fraction":{},
-                  "Binomial":{}}
+Parameters:
 
-    expr_dicts_cv= {"LFC":{},
-                  "P-Val":{},
-                  "Fraction":{},
-                  "Binomial":{}}
-    for k in srs_dict:
-        for f in os.listdir(curr_dir):
-            
-            if k not in f: continue
-            if k == "Human": print(f)
-            srs = srs_dict[k]
-            if "FC" in f:
-                expr_dicts["LFC"][k]= pd.read_csv(os.path.join(curr_dir,f), index_col=0)
-                expr_dicts["LFC"][k] = expr_dicts["LFC"][k].loc[:,expr_dicts["LFC"][k].columns.isin(srs)]
+      dd_df1: Dendrogram distance dataframe of interest.
+      
+      dd_df2: Dendrogram distance dataframe to compare it too.
+      
+      n: Number of closest genes to look at to determine conservation.
 
-            elif "Q-Val" in f:
-                expr_dicts["P-Val"][k] = pd.read_csv(os.path.join(curr_dir,f), index_col=0)
-                expr_dicts["P-Val"][k] = expr_dicts["P-Val"][k].loc[:,expr_dicts["P-Val"][k].columns.isin(srs)]
+Output:
 
-
-            elif "PCT.1" in f:
-                expr_dicts["Fraction"][k]=pd.read_csv(os.path.join(curr_dir,f), index_col=0)
-                expr_dicts["Fraction"][k] = expr_dicts["Fraction"][k].loc[:,expr_dicts["Fraction"][k].columns.isin(srs)]
-                
-        print(expr_dicts["LFC"].keys())
-              
-        if bs_dict != None:
-            for m in expr_dicts:
-                count = 0
-                expr_dicts_cv[m][k] = []
-                for cv in bs_dict[k]:
-                    
-                    try:
-                        cv = [x for x in cv if x in expr_dicts[m][k].columns]
-                    except:
-                        for m in expr_dicts:
-                            print(m, expr_dicts[m].keys())
-                        cv = [x for x in cv if x in expr_dicts[m][k].columns]
-
-
-                curr_df = expr_dicts[m][k][cv].median(axis=1)
-                curr_df = pd.DataFrame(curr_df.values,curr_df.index,[count])
-                expr_dicts_cv[m][k].append(curr_df)
-
-                count+=1
-            
-            expr_dicts_cv[m][k] = pd.concat(expr_dicts_cv[m][k], axis =1)
-
-        expr_dicts[m][k] = expr_dicts[m][k].median(axis=1)
-            
-
-    #bn_dict_cv ={}
-    for k in expr_dicts["LFC"]: 
-        
-        pval = expr_dicts["P-Val"][k]
-        goi = pval.loc[pval<.01].sort_values().index
-        lfc = expr_dicts["LFC"][k]
-        lfc_goi = lfc.loc[lfc>0].index
-        goi = set(goi).intersection(lfc_goi)
-        goi = list(pval.loc[(pval<.01)&pval.index.isin(goi)].sort_values().head(1000).index)
-
-        expr_dicts["Binomial"][k] = bn.nx_binom(SCE.pcn,goi, background)["Binomial_Prob"].sort_values("Binomial_Prob")
-
-        #curr_cv_list = srs_dict[k]
-        if bs_dict == None: continue
-        
-        for cv in range (0,100):
-                
-            pval = expr_dicts_cv["P-Val"][k][cv]
-            goi = pval.loc[pval<.01].sort_values().index #.head(1000).index
-            lfc = expr_dicts_cv["LFC"][k][cv]
-            lfc_goi = lfc.loc[lfc>0].index
-            goi = set(goi).intersection(lfc_goi)
-            goi = list(pval.loc[(pval<.01)&pval.index.isin(goi)].sort_values().head(1000).index)
-
-            expr_dicts["Binomial"][k][cv] = bn.nx_binom(SCE.pcn,goi, background)[["Binomial_Prob"]].sort_values("Binomial_Prob")
-            
-    if bs_dict != None:      
-        return expr_dicts,expr_dicts_cv, 
-        
-    else:
-        return expr_dicts
-    
-def get_multi_df(expr_dicts,
-                dendro_dict,
-                med_corr_dict,
-                markers = ["KDR","FLT1","ENG"], 
-                plot_dir = None, 
-                save_file = None,
-                df_save_dir = None,
-                suffix = ""):
-
-    multiple_df_dict = {}
-    reload(pl_plot)
-
-
-    dendro_dist_dict = get_dendro_dist_dict(dendro_dict)
-    
-    for k1 in med_corr_dict:
-        multiple_df_dict[k1] = {}
-        print(k1)
-        #if k1 == "Choroid": continue
-
-        multiple_df_dict[k1] = pd.DataFrame()
-
-        #bn_dict[k1][["Binomial_Prob"]].dropna()
-        
-
-        bn_df = pd.DataFrame(-np.log10(bn_dict[k1].dropna().values()), bn_dict[k1].dropna().index,["Binomial_Prob"])
-        multiple_df_dict[k1] = multiple_df_dict[k1].join(bn_df, how = "outer")
-        multiple_df_dict[k1].columns = ["BN"]
-
-        #lfc_cv = [x for x in cv if x in lfc_dict[k1].columns]
-        curr_lfc = expr_dicts["LFC"][k1].dropna()
-        curr_lfc = pd.DataFrame(curr_lfc.values,curr_lfc.index,['LFC'])
-        multiple_df_dict[k1] = multiple_df_dict[k1].join(curr_lfc, how = "outer")
-        multiple_df_dict[k1].columns = list(multiple_df_dict[k1].columns[:-1]) + ["LFC"]
-
-        curr_frac = expr_dicts["Fraction"][k1].dropna()
-        curr_frac = pd.DataFrame(curr_frac.values,curr_frac.index,["Fraction"])
-        multiple_df_dict[k1] = multiple_df_dict[k1].join(curr_frac, how = "outer")
-        multiple_df_dict[k1].columns = list(multiple_df_dict[k1].columns[:-1]) + ["Fraction"]
-        #.loc[pct_df.index.isin(endo_goi)]
-
-
-        curr_pval = expr_dicts["P-Val"][k1].dropna()
-        curr_pval = pd.DataFrame(curr_pval.values,curr_pval.index,["P-Val"])
-        curr_pval = -np.log10(curr_pval+(10**-200))
-        multiple_df_dict[k1] = multiple_df_dict[k1].join(curr_pval, how = "outer")
-        multiple_df_dict[k1].columns = list(multiple_df_dict[k1].columns[:-1]) + ["P-Val"]
-
-        multiple_df_dict[k1] = multiple_df_dict[k1].join(pub_med_count, how = "left")
-        #print(multiple_df_dict[k1].head())    
-
-        multiple_df_dict[k1] = multiple_df_dict[k1].loc[~multiple_df_dict[k1].index.duplicated(keep="first")]    
-
-
-
-        if k1 == "Mouse":
-            multiple_df_dict[k1] = multiple_df_dict[k1].join(get_conservation(dendro_dist_dict["Mouse"],dendro_dist_dict["Human"]),how = "outer")
-            multiple_df_dict[k1].columns = list(multiple_df_dict[k1].columns[:-1]) +["DD-Conservation"]
-        else:
-            multiple_df_dict[k1] = multiple_df_dict[k1].join(get_conservation(dendro_dist_dict[k1],dendro_dist_dict["Mouse"]), how = "outer")                                              
-            multiple_df_dict[k1].columns = list(multiple_df_dict[k1].columns[:-1]) +["DD-Conservation"]
-
-        multiple_df_dict[k1].loc[Makrers,"Marker"] =1  
-         
-        multiple_df_dict[k1] = multiple_df_dict.join(dendro_dict[k1], how = "outer")
-            
-        if True:
-            coi_dic ={"All-4" :["BN","Fraction","DD-Conservation","Marker"],
-                      "Independent-3":["BN","Fraction","DD-Conservation"]}
-            w_list = [30]
-            for w in w_list:
-                for i in coi_dic:
-                    coi = coi_dic[i]
-                    curr_df = multiple_df_dict[k1][coi].copy()
-
-                    genes = dendro_dict[k1].sort_values("Dendrogram").index
-                    curr_win = merge_metrics(genes,[curr_df])
-
-                    curr_win = norm_max(sliding_window(genes,curr_win, window_size=w))
-
-                    multiple_df_dict[k1] = multiple_df_dict[k1].join(curr_win, how = "outer")                                              
-                    multiple_df_dict[k1].columns = list(multiple_df_dict[k1].columns[:-1]) +[i+"_WS%i"%w]
-
-        if plot_dir != None:  
-            multiple_df_dict[k1].to_hdf(os.path.join(plot_dir,"%s_%s.hdf"%(k1,"Full_TF")),"df")
-            #print(multiple_df_dict[k1].columns)
-
-            df = med_corr_dict[k1]
-            bar_df = os.path.join(plot_dir,"%s_%s.hdf"%(k1,"Full_TF"))
-            
-            if save_file == None:
-                save_file = plot_dir
-            M= df.values
-            #fig = plt.figure(figsize=(8, 12))
-            curr_plt = pl_plot.plotting(df,endo_tf, endo_goi[18:],bar_df,save_file, suffix="%s_Full_TF"%(k1))
-        
-        if df_save_dir != None:
-            multiple_df_dict[k1].to_csv(os.path.save_dir(df_save_dir,"%s_%s.csv"%(k1,suffix)))
-        
-        
-def dump(obj,file):
-    out = open(file,"wb")
-    pickle.dump(obj,out)
-    out.close()
-    
-    
+      df: Dataframe of conservation values.      
+"""
 def get_conservation(dd_df1, dd_df2,n =50):
     dd_con = pd.DataFrame()
     for c in dd_df1.columns:
@@ -838,6 +667,19 @@ def get_conservation(dd_df1, dd_df2,n =50):
             dd_con.loc[c,"Conservation"] = len(set(g1).intersection(g2))
     return dd_con
     
+"""
+Combine metrics by adding they're sum normalized values together into one.
+
+parameteres:
+      
+      genes: Genes to use when merging metrics.
+      
+      metric_list: Data frame of metrics to merge.
+      
+output:
+      
+      df: Data frame of merged metric values.
+"""
 def merge_metrics (genes,metric_list):
     df = pd.DataFrame()
     for m in metric_list:
@@ -847,13 +689,45 @@ def merge_metrics (genes,metric_list):
         df = df.join(m,how = "outer")
     df = df.mean(axis=1)
     return df
-    
+ 
+"""
+Normalizes the columns so minimum is 0 and maximum is one.
+
+Parameters:
+
+      df: Data frame to normalize.
+      
+output:
+
+      df: Normalized df.
+"""
 def norm_max(df):
     return (df-df.min())/(df.max()-df.min())
     
+      
+"""
+Smooths data using a sliding window.
+
+Parameters:
+
+      gene_order: Order of genes in dendrogram to slide over.
+      
+      data: Data frame of data to average.
+      
+      window_size: size of sliding window.
+      
+      col: Column to use of data to use.
+      
+      na_fill: What to fill na values with.
+      
+      
+Output:
+
+      window_val: Values after window normalization.
+"""
 def sliding_window(gene_order, 
                    data, 
-                   window_size = 50,
+                   window_size = 21,
                    wrap = True,
                    col = None,
                    na_fill = 0):
@@ -888,7 +762,25 @@ def sliding_window(gene_order,
     
     return window_val
     
-    
+ 
+
+"""
+Plot dendrogram and heatmap using data generated by full_data_process.
+
+Parameters:
+
+      data_dir: Directory where data is located.
+      
+      df_dir: Location tos save intermediate dataframe.
+      
+      plt_dir: Locataion to save figure.
+      
+      title: Title of the figure.
+      
+      markerBS_num: Bootstrap number to use.
+      
+      mark_loc: Location of marker in datafrmae.
+"""
 def plot_dedndro(data_dir,df_dir,plt_dir,title,markersBS_num =0, mark_loc = 0):
     
     gene_stats_full = pd.read_csv(os.path.join(data_dir,"gene_stats_Full.csv"),index_col = 0)
@@ -906,9 +798,23 @@ def plot_dedndro(data_dir,df_dir,plt_dir,title,markersBS_num =0, mark_loc = 0):
     #fig = plt.figure(figsize=(8, 12))
     curr_plt = pl_plot.plotting(df,markers[mark_loc:],markers[:mark_loc],bar_df,plt_dir, suffix=title)
 
+"""
+Compute sliding window for different metrics.
 
+Parameters:
+      
+      gene_stats_df: Dataframe with various gene stats to use.
+      
+      ws: window size to use for sliding window.
+      
+      coi_dict: Dictionary of columns to suse.
+      
+output:
+
+      gene_stats_df: Data frame of gene stats with the merged metrics added.
+"""
 def get_window (gene_stats_df, 
-                    ws = 30,
+                    ws = 21,
                     coi_dict = {"Independent-3":["PCT.1","Log_BN","Conservation"],
                     "All-4":["PCT.1","Log_BN","Conservation", "Marker"]}):
 
