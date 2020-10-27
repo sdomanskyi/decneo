@@ -7,7 +7,7 @@ import sys
 sys.path.append("E:/Alex_MM_tmp/salgomed_Alex/bin/Full_Scripts/sergii_code_to_process/")
 sys.path.append("E:/Alex_MM_tmp/salgomed_Alex/bin/Full_Scripts/")
 sys.path.append("E:/Alex_MM_tmp/salgomed_Alex/bin/")
-sys.path.append(".")
+sys.path.append("../scRegulation ")
 import binomial_thm_enriched_list_nx as bn
 import Correlation_Analysis as ca
 from collections import Counter
@@ -19,7 +19,7 @@ import plotting_08_02_2020_from_SD as pl_plot
 reload(ca)
 reload(dendro_code)
 reload(pl_plot)
-pcn = nx.read_edgelist("../Data/PCN.txt")
+pcn = nx.read_edgelist("../data/PCN.txt")
 #pcn = nx.read_edgelist("../../PCN.txt")
 
 """
@@ -136,7 +136,7 @@ def pseudo_peak_process(data,
             bs = get_bootstrap(list(corr_dict.keys()),itr = itr, seed = 1)
             
         else:
-            full_data_process(data_file=data_file,
+            full_data_process(data_file=data,
                                 save_dir=save_dir,
                                 cell_list=cell_list,
                                 genes1 = genes1,
@@ -354,7 +354,8 @@ def full_data_process(data_file,
                         compare_dendro=None,
                         markers = [],
                         fraction = .05,
-                        diff_expr = None):
+                        diff_expr = None,
+                        debug = False):
     #data = pd.read_csv(data_file, index_col = 0)
     if not os.path.exists(save_dir):
         os.mkdir(save_dir)
