@@ -6,12 +6,17 @@ In silico detection of transcriptional regulation genes from single cell transcr
 **Description of the package functionality**
 --------------------------------------------
 
-1. **Calculate gene expression distance of single cell RNA sequencing data from two different species**
-2. **Prepare "all" case and bootstrap cases**
-3. **Comparison and analyze pairs of cases from the two different species**
-4. **Build and plot dendrogram, heatmap, and bargraphs for these cases**
-5. **Analyze the combination of measurements**
-6. **Randomize the dendrogram of "all" case to determine the frequency of each gene being in the largest peak**
+Single cell expression datasets in the correct :ref:`input-data` are required as input. 
+Normalized single cell transcriptomics datasets are then processed and principle steps: preparing cases, analyzing cases, and analyzing combinations are performed.
+An analysis report along with :ref:`output-data` directories and files are generated at the conclusion of the pipeline. For a more in-depth summary, reference the figure below. 
+
+**Summary of Analysis Pipeline** 
+
+.. thumbnail:: ../examples/Method.png
+    :title: Method Pipeline
+    :alt: Cannot load image
+    :align: center
+    :download: false
 
 
 

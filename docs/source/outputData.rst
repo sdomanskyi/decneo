@@ -1,8 +1,10 @@
-**Output Data**
+.. _output-data:
+
+**Output data**
 ===============
 
 Outputs all resulting directories, files, and figures to directory specified as the ``workingDir`` when creating an instance of ``class scRegulation``. 
-It will also output a report detailing all results and figures.    
+It will also output an analysis report detailing all results and figures.    
 
 **Directories**
 ---------------
@@ -107,11 +109,13 @@ It will also output a report detailing all results and figures.
   * - variability.xlsx
     - Holds mean, standard deviation, and covariance calculations 
 
-**Example of result.png using PangLao DB Endothelial Mouse Lung data:** 
+**Example of result figures using PangLao DB Endothelial Lung Datasets** 
 
-.. figure:: images/ExampleDendro.png
-  :scale: 40 %
-  :align: center
+.. thumbnail:: images/ExampleDendro.png
+    :title: Method Pipeline
+    :alt: Cannot load image
+    :align: center
+    :download: false
     
 
         
