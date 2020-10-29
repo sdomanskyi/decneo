@@ -1,5 +1,5 @@
-from scRegulation.commonFunctions import *
-from scRegulation.analysisPipeline import Analysis
+from decneo.commonFunctions import *
+from decneo.analysisPipeline import Analysis
 
 def preparePerSampleDEgenes():
 

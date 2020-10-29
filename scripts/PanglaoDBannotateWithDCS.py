@@ -1,6 +1,6 @@
-import scRegulation
-from scRegulation.commonFunctions import *
-from scRegulation import geneLists
+import decneo
+from decneo.commonFunctions import *
+from decneo import geneLists
 import DigitalCellSorter
 
 wfile = 'DCS output/PanglaoDBendothelialAllv0.h5'
@@ -239,7 +239,7 @@ if __name__ == '__main__':
                     df_anno = df_anno.loc[~df_anno.index.duplicated(keep='first')]
                     df_anno.index = ['%s%s' % (item[0], '_' + item[1] if item[1]!='notused' else '') for item in df_anno.index]
 
-                    tissueDictPath = os.path.join(os.path.dirname(scRegulation.__file__), 'geneLists', 'PanglaoDBtissues.xlsx')
+                    tissueDictPath = os.path.join(os.path.dirname(decneo.__file__), 'geneLists', 'PanglaoDBtissues.xlsx')
                     tissueDict = pd.read_excel(tissueDictPath, index_col='PanglaoDB tissue')['Starred'].str.replace('?', '')
                     tissueDict[tissueDict!=tissueDict] = tissueDict.index.values[tissueDict!=tissueDict]
                     df_anno['Tissue'] = df_anno['Tissue'].replace(tissueDict)

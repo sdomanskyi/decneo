@@ -1,5 +1,5 @@
 """
-setup.py for scRegulation package
+setup.py for decneo package
 """
 from setuptools import setup, find_packages
 from codecs import open
@@ -10,7 +10,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description=f.read()
 
 setup(
-    name='scRegulation',
+    name='decneo',
     packages=find_packages(),
     version='0.0.1',
     description='In silico detection of transcriptional regulation genes from single cell transcriptomics',

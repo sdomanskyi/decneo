@@ -5,7 +5,7 @@ This graph was generated with Python module dependency visualization tool pydeps
 
 .. code-block:: console
 
-    pydeps scRegulation --reverse --max-bacon=2 --cluster --max-cluster-size=6 --min-cluster-size=2 -T=png -o=docs/examples/dependency.png
+    pydeps decneo --reverse --max-bacon=2 --cluster --max-cluster-size=6 --min-cluster-size=2 -T=png -o=docs/examples/dependency.png
 
 
 .. thumbnail:: ../examples/dependency.png

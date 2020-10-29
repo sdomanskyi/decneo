@@ -1,4 +1,4 @@
-from scRegulation.commonFunctions import *
+from decneo.commonFunctions import *
 
 def plot_analyze_SRAs(wdir, cfile):
 

@@ -1,4 +1,4 @@
-from scRegulation.commonFunctions import *
+from decneo.commonFunctions import *
 
 if __name__=='__main__':
     

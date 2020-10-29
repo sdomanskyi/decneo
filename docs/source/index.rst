@@ -1,12 +1,10 @@
-Welcome to scRegulation's documentation!
-========================================
+Welcome to DECNEO documentation!
+================================
 
-
-TEXT TEXT TEXT.
+In silico detection of transcriptional regulation genes from single cell transcriptomics data.
 
 .. toctree::
    :maxdepth: 4
-   :caption: Contents:
 
    overview
    gettingStarted

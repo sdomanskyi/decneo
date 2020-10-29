@@ -45,7 +45,7 @@ def skip(app, what, name, obj, skip, options):
 
 # -- Project information -----------------------------------------------------
 
-project = 'scRegulation'
+project = 'DECNEO'
 copyright = '2020, S. Domanskyi, A. Hakansson, M. Meng, G. Paternostro, C. Piermarocchi'
 author = 'S. Domanskyi, A. Hakansson, M. Meng, G. Paternostro, C. Piermarocchi'
 
@@ -121,8 +121,12 @@ html_theme = 'sphinx_rtd_theme'
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-#
-# html_theme_options = {}
+
+html_logo = "DECNEO.svg"
+html_theme_options = {
+    'logo_only': True,
+    'display_version': True,
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -147,7 +151,7 @@ def setup(app):
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'scRegulationdoc'
+htmlhelp_basename = 'decneodoc'
 
 
 # -- Options for LaTeX output ------------------------------------------------
@@ -174,7 +178,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'scRegulation.tex', 'scRegulation Documentation', 'S. Domanskyi, A. Hakansson, M. Meng, G. Paternostro, C. Piermarocchi', 'manual'),
+    (master_doc, 'decneo.tex', 'DECNEO Documentation', 'S. Domanskyi, A. Hakansson, M. Meng, G. Paternostro, C. Piermarocchi', 'manual'),
 ]
 
 
@@ -183,7 +187,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'scRegulation', 'scRegulation Documentation',
+    (master_doc, 'decneo', 'DECNEO Documentation',
      [author], 1)
 ]
 
@@ -194,8 +198,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'scRegulation', 'scRegulation Documentation',
-     author, 'scRegulation', 'Description.', 'Miscellaneous'),
+    (master_doc, 'decneo', 'DECNEO Documentation',
+     author, 'decneo', 'Description.', 'Miscellaneous'),
 ]
 
 

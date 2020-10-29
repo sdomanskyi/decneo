@@ -1,4 +1,4 @@
-from scRegulation.commonFunctions import *
+from decneo.commonFunctions import *
 
 
 # Begin: Part specific for each analyses ----------------------------------------------------------

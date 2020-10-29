@@ -10,7 +10,7 @@ For development and use:
 > Note: this is not intended for public use yet. Publication is being prepared.
 
 
-To install scRegulation as a package:
+To install DECNEO as a package:
 
 	$ python setup.py install
 

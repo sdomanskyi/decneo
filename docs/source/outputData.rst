@@ -3,7 +3,7 @@
 **Output data**
 ===============
 
-Outputs all resulting directories, files, and figures to directory specified as the ``workingDir`` when creating an instance of ``class scRegulation``. 
+Outputs all resulting directories, files, and figures to directory specified as the ``workingDir`` when creating an instance of class ``Analysis``. 
 It will also output an analysis report detailing all results and figures.    
 
 **Directories**
@@ -25,8 +25,8 @@ It will also output an analysis report detailing all results and figures.
           - Description 
         * - batches.txt
           - List of batches used in the analysis 
-        * - comparison.txt
-          - TEXT
+        * - comparison.xlsx
+          - Evolutionary conservation file
         * - dendrogram-heatmap-correlation-data.(h5/xlsx) 
           - For each gene holds all measurement data (e.g. cluster, Fraction, Top50 overlap, etc.). Contains correlation distance of expression measure.
         * - dendrogram-heatmap-correlation.png

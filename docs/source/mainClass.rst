@@ -9,14 +9,14 @@
 
        **Description of the package functionality**
 
-    .. automodule:: scRegulation.analysisPipeline
+    .. automodule:: decneo.analysisPipeline
         :exclude-members: Analysis
         :noindex:
 
 |
 |
 
-.. autoclass:: scRegulation.analysisPipeline.Analysis
+.. autoclass:: decneo.analysisPipeline.Analysis
     :members:
     :undoc-members:
     :show-inheritance:

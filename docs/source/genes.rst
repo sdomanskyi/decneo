@@ -8,7 +8,7 @@ A set of TEXT TEXT TEXT.
 **Submodule genes info**
 
 
-.. automodule:: scRegulation.genes
+.. automodule:: decneo.genes
     :members:
     :undoc-members:
     :show-inheritance:

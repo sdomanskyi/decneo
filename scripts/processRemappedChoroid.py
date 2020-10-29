@@ -1,4 +1,4 @@
-from scRegulation.commonFunctions import *
+from decneo.commonFunctions import *
 import DigitalCellSorter
 
 def read10xSaveDonorChoroid(donor, inDir = ''):
