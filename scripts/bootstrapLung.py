@@ -3,8 +3,8 @@ from scRegulation.analysisPipeline import Analysis
 
 def prepareDEGforTissues(dataSaveName, species, tissues, preprocessedDataPath = '/mnt/research/piermarolab/Sergii/Endothelial by PanglaoDB definition/'):
 
-    from .PanglaoDBannotation import getAnnotationsSummaryDf
-    se_anno = getAnnotationsSummaryDf(MetadataDirName)[['Tissue origin of the sample', 'Species']].droplevel('Cluster index').set_index('Species', append=True)[['Tissue origin of the sample']]
+    from .PanglaoDBannotation import getPanglaoDBAnnotationsSummaryDf
+    se_anno = getPanglaoDBAnnotationsSummaryDf(MetadataDirName)[['Tissue origin of the sample', 'Species']].droplevel('Cluster index').set_index('Species', append=True)[['Tissue origin of the sample']]
     se_anno.columns = ['tissue']
     se_anno = se_anno.loc[~se_anno.index.duplicated(keep='first')]
     se_anno.index.names = ['SRA', 'SRS', 'species']

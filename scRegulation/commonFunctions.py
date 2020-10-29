@@ -826,7 +826,7 @@ def normSum1(data):
 
     return np.nan_to_num(data) / w
 
-def silhouette(data, n_clusters, cluster_labels):
+def silhouette(data, n_clusters, cluster_labels, saveDir, saveName):
 
     u = np.unique(cluster_labels)
     n_clusters = len(u)
@@ -884,6 +884,96 @@ def silhouette(data, n_clusters, cluster_labels):
     ax1.set_yticklabels([])
     ax1.set_yticks([])
 
-    plt.show()
+    fig.savefig(os.path.join(saveDir, saveName + '.png'), dpi=300)
 
+    return
+
+def getPanglaoDBAnnotationsSummaryDf(dirName, saveToFile = True, printDf = False):
+
+    df_metadata = pd.read_csv(os.path.join(dirName, 'PanglaoDB', 'data', 'metadata.txt'), index_col=[0, 1], header=None)
+    df_metadata.index.names = ['SRA accession', 'SRS accession']
+    df_metadata.columns = ['Tissue origin of the sample', 'scRNA-seq protocol', 'Species', 'Sequencing instrument', 'Number of expressed genes', 'Median number of expressed genes per cell', 'Number of cell clusters in this sample', 'Is the sample from a tumor? (1 true otherwise false)', 'Is the sample from primary adult tissue?', 'Is the sample from a cell line?']
+
+    df_counts = pd.read_csv(os.path.join(dirName, 'PanglaoDB', 'data', 'counts.txt'), index_col=[0, 1], header=0).replace(0, np.nan)
+    df_metadata = pd.concat([df_metadata, df_counts], axis=1, sort=False)
+    df_metadata['Fraction of cells passed QC'] = df_metadata['Number of cells'] / df_metadata['Number of raw cells']
+
+    df_metadata.sort_index(axis=1, inplace=True, ascending=False)
+
+    df_cell_type_annotations = pd.read_csv(os.path.join(dirName, 'PanglaoDB', 'data', 'cell_type_annotations.txt'), index_col=[0, 1, 2], header=None)
+    df_cell_type_annotations.index.names = ['SRA accession', 'SRS accession', 'Cluster index']
+    df_cell_type_annotations.columns = ['Cell type annotation', 'P-value from Hypergeometric test', 'Adjusted p-value (BH)', 'Cell type Activity Score']
+
+    df_clusters_to_number_of_cells = pd.read_csv(os.path.join(dirName, 'PanglaoDB', 'data', 'clusters_to_number_of_cells.txt'), index_col=[0, 1, 2], header=None)
+    df_clusters_to_number_of_cells.index.names = ['SRA accession', 'SRS accession', 'Cluster index']
+    df_clusters_to_number_of_cells.columns = ['Number of cells in cluster']
+    df_cell_type_annotations = pd.concat([df_clusters_to_number_of_cells, df_cell_type_annotations], axis=1, sort=False)
+    
+    df_cell_type_annotations = df_cell_type_annotations.reindex(np.hstack([df_cell_type_annotations.columns, df_metadata.columns]), axis=1)
+    df_cell_type_annotations.loc[:, df_metadata.columns] = df_metadata.loc[pd.MultiIndex.from_arrays([df_cell_type_annotations.index.get_level_values(0), df_cell_type_annotations.index.get_level_values(1)])].values
+
+    df_cell_type_annotations = df_cell_type_annotations.replace('\\N', np.nan)
+
+    for col in ['Cell type Activity Score',
+                'Number of cell clusters in this sample',
+                'Is the sample from primary adult tissue?',
+                'Is the sample from a tumor? (1 true otherwise false)',
+                'Is the sample from a cell line?']:
+        df_cell_type_annotations[col] = df_cell_type_annotations[col].astype(float)
+
+    celltypes = df_cell_type_annotations['Cell type annotation'].values
+    #df_cell_type_annotations = df_cell_type_annotations.loc[celltypes==celltypes]
+
+    if saveToFile:
+        if not os.path.isfile(os.path.join(dirName, 'df_cell_type_annotations.xlsx')):
+            df_cell_type_annotations.to_excel(os.path.join(dirName, 'df_cell_type_annotations.xlsx'), merge_cells=False)
+
+    if printDf:
+        print(df_cell_type_annotations)
+
+    return df_cell_type_annotations
+
+def makeBarplot(labels, saveDir, saveName):
+
+    if not os.path.exists(saveDir):
+        os.makedirs(saveDir)
+
+    fig, ax = plt.subplots(figsize=(4.5,8), frameon=False)
+
+    ulabels = np.sort(np.unique(labels))
+    colors = pd.Series({label:cm.jet(ilabel / len(ulabels)) for ilabel, label in enumerate(ulabels)})
+    se = (100. * pd.Series(index=labels, data=0).groupby(level=0).count() / len(labels)).round(1).sort_values(ascending=True)
+    colors = colors.reindex(se.index).values
+
+    ax.bar([0]*len(ulabels), se.values, width=1., edgecolor='white', bottom=np.append(0, np.cumsum(se.values)[:-1]), color=colors)
+
+    poss = np.append(0, np.cumsum(se.values)[:-1]) + se.values*0.5
+
+    texts = []
+    bottom = 0.
+    for i, label, value, y in zip(range(len(se)), se.index, se.values, poss):
+        bottom += 2.5 if (value < 5. or bottom > y - 0.5*value) else 0.5*value
+        texts.append(ax.text(1., bottom, '%s%% ' % value + label, fontsize=12, color='k'))
+        bottom += 2.5 if (value < 5. or bottom > y - 0.5*value) else 0.5*value
+
+    for text, value, y, color in zip(texts, se.values, poss, colors):
+        text._x = 1.25
+        ax.plot([0.55, text._x - 0.04], [y, text._y + 1.25], color=color, lw=1., clip_on=False)
+
+    ax.set_xlim([-0.5, 6])
+
+    plt.xticks([])
+    plt.yticks([0, 20, 40, 60, 80, 100], ['0', '20%', '40%', '60%', '80%', '100%'], fontsize=10)
+
+    ax.spines['left'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+
+    ax.yaxis.set_ticks_position('left')
+
+    ax.set_title('%s cells' % len(labels))
+
+    fig.savefig(os.path.join(saveDir, saveName + '.png'), dpi=300)
+            
     return

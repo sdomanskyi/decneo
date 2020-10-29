@@ -1,4 +1,4 @@
-from commonFunctions import *
+from scRegulation.commonFunctions import *
 
 receptors = np.loadtxt('geneLists/receptors_Human_HUGO.txt', dtype=str)
 ligands = np.loadtxt('geneLists/ligands_Human_HUGO.txt', dtype=str)

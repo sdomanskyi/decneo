@@ -1,24 +1,190 @@
 from scRegulation.commonFunctions import *
 
+def plot_analyze_SRAs(wdir, cfile):
+
+    '''
+    plot_analyze_SRAs('d:/Projects/A_Endothelial/VS/Endothelial/results/DCS_SRAs/', 'results_DCS_SRAs.h5')
+    plot_analyze_SRAs('d:/Projects/A_Endothelial/VS/Endothelial/results/Alona_SRAs/', 'results_Alona_SRAs.h5')
+    '''
+
+    def getDf(keys, combo, parameter, species, peaks=False):
+
+        dfs = []
+        for name in np.unique(keys.T[2]):
+            if species in name:
+                b = pd.read_hdf(wdir + cfile, key='/%s/%s/%s' % (combo, parameter, name))
+
+                if peaks:
+                    b.name = 'peaks'
+                    b = pd.concat([b.to_frame()], axis=0, keys=[name])
+                else:
+                    b.name = name
+
+                dfs.append(b)
+
+        if peaks:
+            dfs = pd.concat(dfs, axis=0, sort=False).fillna(0.)
+            dfs['peaks'] = dfs['peaks'].apply(cleanListString)
+        else:
+            dfs = pd.concat(dfs, axis=1, sort=False).fillna(0.)
+        print(dfs.shape)
+
+        return dfs
+
+    def plotDf(df, figName, n_clusters = 10):
+        fig = plt.figure(figsize=(8,10))
+
+        ax = fig.add_axes([0.35, 0.7, 0.55, 0.15], frame_on=False)
+
+        data = np.nan_to_num(df.values, nan=df.values.max())
+        Z = hierarchy.linkage(data, method='ward', optimal_ordering=True)
+        origLineWidth = matplotlib.rcParams['lines.linewidth']
+        matplotlib.rcParams['lines.linewidth'] = 1.0
+        # color_threshold = (Z[-n_clusters,2] + Z[-n_clusters+1,2]) / 2
+        D = hierarchy.dendrogram(Z, ax=ax, color_threshold = 0, above_threshold_color='k', orientation='top')
+        matplotlib.rcParams['lines.linewidth'] = origLineWidth
+        ax.set_xticklabels([])
+        ax.set_xticks([])
+        ax.set_yticklabels([])
+        ax.set_yticks([])
+
+        tissues = [c.split(' Homo sapiens ')[0] if 'Homo sapiens' in c else c.split(' Mus musculus ')[0] for c in df.columns]
+        dcolors = {c[1]:c[0] for c in list(enumerate(np.unique(tissues)))}
+        colors = {k: cm.jet(v/len(dcolors)) for k, v in dcolors.items()}
+        colors = [colors[t] for t in tissues]
+        colors = np.array(colors)[D['leaves']]
+
+        #cluster_labels = scipy.cluster.hierarchy.fcluster(Z, t=n_clusters, criterion='maxclust')[D['leaves']] - 1
+        cluster_labels = np.array(tissues)[D['leaves']]
+
+        #for label in np.unique(cluster_labels):
+        #    pos = 5. + 10. * np.where(cluster_labels==label)[0].mean()
+        #    ax.text(pos, 0.3, str(label), color='blue', fontsize=14, va='center', ha='center').set_path_effects([path_effects.Stroke(linewidth=1.5, foreground='grey'), path_effects.Normal()])
+
+        #plt.title(figName)
+
+        np.fill_diagonal(df.values, np.nan)
+        ax = fig.add_axes([0.35, 0.3, 0.55, 0.4], frame_on=False)
+        cmap = plt.cm.hot
+        cmap.set_bad('grey')
+        sdata = np.ma.array(df.values[:,D['leaves']][D['leaves'],:], mask=np.isnan(df.values))
+        im = ax.imshow(sdata, cmap=cmap, aspect='auto', interpolation='None', extent=(-0.5, df.shape[0] - 0.5, df.shape[1] - 0.5, -0.5), vmin=0., vmax=1.)
+
+        if False:
+            ax.set_xticks(range(len(df.columns)))
+            ax.set_xticklabels(df.columns.values[D['leaves']])
+            ax.tick_params(axis='x', labelsize=8, width=0.25, length=1, rotation=90)
+            for i, tick in enumerate(plt.gca().get_xticklabels()):
+                tick.set_color(colors[i])
+        else:
+            ax.set_xticks([])
+            ax.set_xticklabels([])
+
+        if True:
+            ax.set_yticks(range(len(df.columns)))
+            ax.set_yticklabels(df.columns.values[D['leaves']])
+            ax.tick_params(axis='y', labelsize=8., width=0.25, length=1, rotation=0)
+            for i, tick in enumerate(plt.gca().get_yticklabels()):
+                tick.set_color(colors[i])
+                tick.set_path_effects([path_effects.Stroke(linewidth=0.6, foreground='black'), path_effects.Normal()])
+        else:
+            ax.set_yticks([])
+            ax.set_yticklabels([])
+
+        ax = fig.add_axes([0.9, 0.5, 0.025, 0.25], frame_on=False)
+        ax.set_xticks([])
+        ax.set_xticklabels([])
+        ax.set_yticks([])
+        ax.set_yticklabels([])
+        clb = fig.colorbar(im, ax=ax, fraction=0.4) # label='Bootstrap counts corr.'
+        clb.ax.tick_params(labelsize=8)
+
+        plt.savefig(figName, dpi=300)
+        plt.clf()
+        plt.close()
+
+        return df.values[:,D['leaves']][D['leaves'],:], n_clusters, cluster_labels
+
+    keys = np.array([key.split('/')[1:] for key in KeysOfStore(wdir + cfile)])
+    for species in ['Mus musculus', 'Homo sapiens', 'SRA'][-1:]:
+        if False:
+            s3, s4 = getDf(keys, 'combo3', 's', species, True), getDf(keys, 'combo4', 's', species, True)
+            s3.to_excel(wdir + '%s s3.xlsx' % species, merge_cells=False)
+            s4.to_excel(wdir + '%s s4.xlsx' % species, merge_cells=False)
+
+        if False:
+            r3, r4 = getDf(keys, 'combo3', 'r', species), getDf(keys, 'combo4', 'r', species)
+            r3.to_excel(wdir + '%s r3.xlsx' % species)
+            r4.to_excel(wdir + '%s r4.xlsx' % species)
+
+        if True:
+            b3, b4 = getDf(keys, 'combo3', 'b', species), getDf(keys, 'combo4', 'b', species)
+
+            b3 = b3[b3.columns[~np.isin(b3.columns.str.split(' ', expand=True).get_level_values(0).values, ['Muscle', 'Mammary', 'Heart', 'Liver'])]].drop('Kidney Homo sapiens SRA705190', axis=1)
+
+            df_temp = pd.DataFrame(columns=['u', 'v'])
+            b3c = b3.corr()
+            np.fill_diagonal(b3c.values, np.nan)
+            names = b3c.columns.str.split(' ', expand=True).get_level_values(0).values
+            for name in np.unique(names):
+                u = b3c.iloc[np.where(names==name)[0], np.where(names==name)[0]].stack().dropna().mean()
+                v = b3c.iloc[np.where(names==name)[0], np.where(names!=name)[0]].stack().dropna().mean()
+                #print(name, '\t', np.round(u, 3), '\t', np.round(v, 3))
+                df_temp.loc[name] = np.round(u, 3), np.round(v, 3)
+
+            df_temp = df_temp.sort_values(by='u', ascending=False)
+            print(df_temp)
+            df_temp.to_excel(wdir + 'b3_intra_inter_distance.xlsx')
+
+            b3.to_excel(wdir + '%s b3.xlsx' % species)
+            #b4.to_excel(wdir + '%s b4.xlsx' % species)
+            c3 = plotDf(b3.corr(), wdir + '%s b3.png' % species, n_clusters=6)
+            #c4 = plotDf(b4.corr(), wdir + '%s b4.png' % species, n_clusters=6)
+
+            #silhouette(*c3, saveDir=wdir, saveName=cfile[:-3] + '_silhouette')
+
+    return
+
+def umap_SRAs(wdir):
+
+    '''
+    umap_SRAs('d:/Projects/A_Endothelial/VS/Endothelial/results/DCS_SRAs/')
+    umap_SRAs('d:/Projects/A_Endothelial/VS/Endothelial/results/Alona_SRAs/')
+    '''
+
+    df3 = pd.read_excel(wdir + 'SRA b3.xlsx', index_col=0, header=0)
+    df4 = pd.read_excel(wdir + 'SRA b4.xlsx', index_col=0, header=0)
+
+    tissues = [c.split(' Homo sapiens ')[0] if 'Homo sapiens' in c else c.split(' Mus musculus ')[0] for c in df3.columns]
+    dcolors = {c[1]:c[0] for c in list(enumerate(np.unique(tissues)))}
+    colors = {k: cm.jet(v/len(dcolors)) for k, v in dcolors.items()}
+    colors = [colors[t] for t in tissues]
+
+    def pplot(coords, columns, saveName):
+            
+        plt.scatter(coords[0], coords[1])
+
+        for i, label in enumerate(columns):
+            plt.text(coords[0][i], coords[1][i], label, color=colors[i], fontsize=4).set_path_effects([path_effects.Stroke(linewidth=0.1, foreground='grey'), path_effects.Normal()])
+
+        plt.axis('off')
+        plt.savefig(saveName, dpi=300)
+        plt.clf()
+
+        return
+
+    import umap
+
+    pplot(umap.UMAP(random_state=42).fit_transform(df3.values.T).T, df3.columns, wdir + 'UMAP_b3.png')
+    pplot(umap.UMAP(random_state=42).fit_transform(df4.values.T).T, df4.columns, wdir + 'UMAP_b4.png')
+
+    return
+
 if __name__ == '__main__':
 
+    #plot_analyze_SRAs('d:/Projects/A_Endothelial/VS/Endothelial/results/DCS_SRAs/', 'results_DCS_SRAs.h5')
+
     wdir = 'd:/Projects/A_Endothelial/VS/Endothelial/results/for meeting 10 15 2020/'
-
-    # Something comparison? What am I looking at?
-    if False:
-        df = pd.read_excel(wdir + 'sel DCS 3 grouped.xlsx', index_col=[0,1], header=[0,1]).groupby(level=0, axis=1).mean()
-        df = df.xs(key=0, level=1, axis=0)
-        #df = df.droplevel(1, axis=0)
-        df = df[df.sum(axis=1) > 0.]
-        df.columns = ['brain', 'lung', 'testis']
-        print(df)
-
-        dfAlex = pd.read_excel('d:/Projects/A_Endothelial/VS/Endothelial/dev/PL_Norm_Peak_diff SD marked.xlsx', index_col=0, header=0)
-        dfAlex.columns = ['brain', 'lung', 'testis']
-        dfAlex = dfAlex.loc[df.index]
-        print(dfAlex)
-
-        print(df.corrwith(dfAlex))
 
     # Alona vs DCS all
     if False:
@@ -39,7 +205,7 @@ if __name__ == '__main__':
         df.to_excel(wdir + 'summary_aligned.xlsx')
 
     # Part main
-    if False:
+    if True:
         def getDfC(tool, combo, suff):
             df = pd.read_excel(wdir + '%s_SRAs/' % tool + 'SRA %s%s.xlsx' % (suff, combo), index_col=0, header=0)
         
@@ -124,35 +290,86 @@ if __name__ == '__main__':
 
             writer.save()
 
-        if False:
+        if True:
             writer = pd.ExcelWriter(wdir + 'figure data bootstrap counts.xlsx')
 
-            for combo, tool in [(3, 'Alona'), (3, 'DCS'), (4, 'Alona'), (4, 'DCS')]:
+            for combo, tool in [(3, 'DCS')]:
                 df_temp = df.xs(key=combo, level='combo').xs(key=tool, level='tool')
+
+                df_temp = df_temp.drop([('Homo sapiens', 'Kidney'),
+                                        ('Mus musculus', 'Liver'),
+                                        ('Mus musculus', 'Heart'),
+                                        ('Mus musculus', 'Muscle'),
+                                        ('Mus musculus', 'Mammary')])
+
                 df_temp = df_temp[df_temp.columns[df_temp.sum(axis=0) > 0.]]
+                print(df_temp)
 
-                #df_temp[:] = (df_temp.values - np.mean(df_temp.values, axis=0)) / np.std(df_temp.values, axis=0)
-                #df_temp = df_temp[df_temp.columns[np.abs(df_temp).sum(axis=0) > 0.]]
+                g13DCS3 = ['FLT1', 'CDH5', 'CD93', 'ADGRF5', 'PECAM1', 'RAMP2', 'ENG', 'ESAM', 'KDR', 'ADGRL4', 'PTPRB', 'TEK', 'TIE1']
 
-                df_temp = df_temp.iloc[scipy.cluster.hierarchy.dendrogram(scipy.cluster.hierarchy.linkage(df_temp, 'ward'), no_plot=True, get_leaves=True)['leaves']]
-                df_temp = df_temp.T.iloc[scipy.cluster.hierarchy.dendrogram(scipy.cluster.hierarchy.linkage(df_temp.T, 'ward'), no_plot=True, get_leaves=True)['leaves']].T
+                if False:
+                    writer = pd.ExcelWriter(wdir + 'For metascape choroid, lung.xlsx')
+                    df_temp.loc[('Mus musculus', 'Lung')].sort_values(ascending=False).drop(g13DCS3).to_excel(writer, 'Lung')
+                    df_temp.loc[('Homo sapiens', 'Choroid')].sort_values(ascending=False).drop(g13DCS3).to_excel(writer, 'Choroid')
+                    writer.save()
+                    exit()
+
+                dTissues = dict()
+                selGenes = list()
+                for species, tissue in df_temp.index:
+                    if tissue != 'All':
+                        tempGenes = df_temp.loc[(species, tissue)].sort_values(ascending=False).drop(g13DCS3)[:10]
+                        print(tissue, tempGenes.max())
+
+                        tempGenes = tempGenes.index.values.tolist()
+                        selGenes.extend(tempGenes)
+                        dTissues.update({(species, tissue): tempGenes})
+
+                selGenes = np.unique(selGenes)
+
+                pd.Series(dTissues).apply(pd.Series).to_excel(wdir + 'dTissues_top10_.xlsx', merge_cells=False)
+
+
+                df_temp1 = df_temp[df_temp.columns[np.isin(df_temp.columns, g13DCS3)]]
+                df_temp2 = df_temp[df_temp.columns[np.isin(df_temp.columns, selGenes)]]
+
+                df_temp1 = df_temp1.T.iloc[scipy.cluster.hierarchy.dendrogram(scipy.cluster.hierarchy.linkage(df_temp1.T, 'ward'), no_plot=True, get_leaves=True)['leaves']].T
+
+                df_temp2 = df_temp2.T.iloc[scipy.cluster.hierarchy.dendrogram(scipy.cluster.hierarchy.linkage(df_temp2.T, 'ward'), no_plot=True, get_leaves=True)['leaves']].T
+
+                df_temp = pd.concat([df_temp1, df_temp2], axis=1, sort=False)
+
+                #df_temp = df_temp.iloc[scipy.cluster.hierarchy.dendrogram(scipy.cluster.hierarchy.linkage(df_temp, 'ward'), no_plot=True, get_leaves=True)['leaves']]
+                #df_temp = df_temp.T.iloc[scipy.cluster.hierarchy.dendrogram(scipy.cluster.hierarchy.linkage(df_temp.T, 'ward'), no_plot=True, get_leaves=True)['leaves']].T
 
                 df_temp.to_excel(writer, sheet_name='combo%s %s' % (combo, tool), merge_cells=False)
                 print(df_temp)
 
-                fig, ax = plt.subplots(figsize=(10, 4))
-                ax.imshow(df_temp.values, cmap='Greens', interpolation='None', aspect='auto')
+                fig = plt.figure(figsize=(10, 4))
+
+                ax = fig.add_axes([0.25, 0.2, 0.65, 0.7])
+                im = ax.imshow(df_temp.values, cmap='Greens', interpolation='None', aspect='auto')
+                ax.axvline(len(g13DCS3) - 0.5, linewidth=1., color='crimson')
 
                 ax.set_xticks(range(df_temp.shape[1]))
-                ax.set_xticklabels(df_temp.columns, rotation=90, fontsize=2)
+                ax.set_xticklabels(df_temp.columns, rotation=90, fontsize=8)
                 ax.set_xlim([-0.5, df_temp.shape[1] - 0.5])
 
                 ax.set_yticks(range(df_temp.shape[0]))
-                ax.set_yticklabels(['%s (%s)' % (col[1], col[0]) for col in df_temp.index], rotation=0, fontsize=5)
+                ax.set_yticklabels(['%s (%s)' % (col[1], col[0]) for col in df_temp.index], rotation=0, fontsize=8)
                 ax.set_ylim([-0.5, df_temp.shape[0] - 0.5])
 
-                ax.set_title('combo%s %s' % (combo, tool), fontdict={'color': 'b', 'size':'8'})
-                fig.tight_layout()
+                if True:
+                    axColor = fig.add_axes([0.9, 0.5, 0.025, 0.25], frame_on=False)
+                    axColor.set_xticks([])
+                    axColor.set_xticklabels([])
+                    axColor.set_yticks([])
+                    axColor.set_yticklabels([])
+                    clb = fig.colorbar(im, ax=axColor, fraction=0.5)
+                    clb.ax.tick_params(labelsize=8)
+
+                #ax.set_title('combo%s %s' % (combo, tool), fontdict={'color': 'b', 'size':'8'})
+                #fig.tight_layout()
                 fig.savefig(wdir + 'combo%s %s bootstrap counts.png' % (combo, tool), dpi=600)
                 fig.savefig(wdir + 'combo%s %s bootstrap counts.pdf' % (combo, tool))
 
@@ -317,7 +534,7 @@ if __name__ == '__main__':
         writer.save()
 
     # Part sub-peaks grouped DCS 3
-    if True:
+    if False:
         df = pd.read_excel(wdir + 'sel DCS 3.xlsx', index_col=[0,1], header=[0,1])
         df.columns.names = ['species', 'tissue']
         df.index.names = ['gene', 'isGeneric']

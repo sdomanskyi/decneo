@@ -16,9 +16,9 @@ def preparePerSampleDEgenes():
 
     # Prepare index of all cells
     if False:
-        from .PanglaoDBannotation import getAnnotationsSummaryDf
+        from .PanglaoDBannotation import getPanglaoDBAnnotationsSummaryDf
 
-        df_cell_type_annotations = getAnnotationsSummaryDf(MetadataDirName)[['Cell type annotation', 'Species']]
+        df_cell_type_annotations = getPanglaoDBAnnotationsSummaryDf(MetadataDirName)[['Cell type annotation', 'Species']]
         df_cell_type_annotations = df_cell_type_annotations.set_index(['Cell type annotation', 'Species'], append=True)
         df_cell_type_annotations.index.names = ['SRA', 'SRS', 'cluster', 'celltype', 'species']
         print(df_cell_type_annotations.index.names)
@@ -216,7 +216,10 @@ if __name__ == '__main__':
     #anMouse.reanalyzeMain()
     #anMouse.analyzeCombinationVariant('Avg combo3avgs')
     #anMouse.analyzeCombinationVariant('Avg combo4avgs')
-    anMouse.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=8, nE=30, fcutoff=0.5, width=50)
+    #anMouse.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=8, nE=30, fcutoff=0.5, width=50)
     #anMouse.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=8, nE=30, fcutoff=0.5, width=50)
     #anMouse.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=20)  
     #anMouse.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=20)  
+
+    anHuman.reanalyzeMain(togglePublicationFigure=True, toggleIncludeHeatmap = False, markersLabelsRepelForce = 1.25)
+    anMouse.reanalyzeMain(togglePublicationFigure=True, toggleIncludeHeatmap = False, markersLabelsRepelForce = 1.5)

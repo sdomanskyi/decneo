@@ -783,7 +783,7 @@ class Analysis():
 
         return
 
-    def analyzeCase(self, df_expr, toggleCalculateMajorMetric = True, exprCutoff = 0.05, toggleExportFigureData = True, toggleCalculateMeasures = True, suffix = '', saveDir = '', toggleGroupBatches = True, dpi = 300, toggleAdjustText = True, figureSize=(8, 22), toggleAdjustFigureHeight=True, noPlot = False, halfWindowSize = 10, printStages = True, externalPanelsData = None, toggleIncludeHeatmap = True, addDeprecatedPanels = False):
+    def analyzeCase(self, df_expr, toggleCalculateMajorMetric = True, exprCutoff = 0.05, toggleExportFigureData = True, toggleCalculateMeasures = True, suffix = '', saveDir = '', toggleGroupBatches = True, dpi = 300, toggleAdjustText = True, markersLabelsRepelForce = 1.5, figureSize=(8, 22), toggleAdjustFigureHeight=True, noPlot = False, halfWindowSize = 10, printStages = True, externalPanelsData = None, toggleIncludeHeatmap = True, addDeprecatedPanels = False, togglePublicationFigure = False):
 
         '''Analyze, calculate, and generate plots for individual experiment
         
@@ -850,6 +850,9 @@ class Analysis():
         '''
 
         stimulators, inhibitors = self.knownRegulators, []
+
+        if togglePublicationFigure:
+            toggleExportFigureData = False
 
         def calculateMajorMetricAndGeneStats(df_expr, saveDir, groupBatches, selGenes, exprCutoff):
 
@@ -941,7 +944,7 @@ class Analysis():
                 makeCombinationPlot(df)
             '''
              
-            nonlocal figureSize, self
+            nonlocal figureSize, self, togglePublicationFigure, markersLabelsRepelForce
 
             if self.panels is None:
                 self.panels = self.combinationPanels + self.standardPanels
@@ -1003,9 +1006,8 @@ class Analysis():
                     ax.plot(ticks_x, ticks_y, color='k', lw=0.4, clip_on=False)
                     ax.set_xticklabels([])
                         
-
                     if adjustText:
-                        adjust_text(texts, va='top', ha='center', autoalign='x', lim=400, only_move={'text':'x'}, force_text=(0.2, 0.5))
+                        adjust_text(texts, va='top', ha='center', autoalign='x', lim=400, only_move={'text':'x'}, force_text=(markersLabelsRepelForce, 0.5))
 
                     v = 0.04 * ax.get_ylim()[1]
                     for text, opos in zip(texts, origPos):
@@ -1140,7 +1142,7 @@ class Analysis():
 
             def addBar(fig, dataArgs, panel, coords, halfWindowSize = halfWindowSize, noAverage = False):
 
-                nonlocal panelsData, panelsDataNames, externalPanelsData
+                nonlocal panelsData, panelsDataNames, externalPanelsData, togglePublicationFigure
 
                 M = dataArgs['M'] 
                 order = dataArgs['order'] 
@@ -1167,7 +1169,10 @@ class Analysis():
                 ax.set_xlim([min(clusterBoundaries), max(clusterBoundaries)])
 
                 if panel == 'fraction':
-                    ylabel='Fraction'
+                    if togglePublicationFigure:
+                        ylabel='Expression\nfraction'
+                    else:
+                        ylabel='Fraction'
                     try:
                         data = pd.read_hdf(os.path.join(saveDir, 'perGeneStats.h5'), key='df_fraction').reindex(allGenes)
                         if type(data) is pd.Series:
@@ -1259,7 +1264,11 @@ class Analysis():
                         data = np.zeros(len(allGenes))
 
                 elif panel == 'markers':
-                    ylabel='Markers'
+                    if togglePublicationFigure:
+                        ylabel='Known angiogenesis\nreceptors'
+                    else:
+                        ylabel='Markers'
+
                     try:
                         data = np.zeros(len(allGenes))
                         data[locations] = 1.
@@ -1273,7 +1282,10 @@ class Analysis():
                         data = np.zeros(len(allGenes))
 
                 elif panel == 'top50':
-                    ylabel='Top50\noverlap'
+                    if togglePublicationFigure:
+                        ylabel='Evolutionary\nconservation'
+                    else:
+                        ylabel='Top50\noverlap'
                     try:
                         data = externalPanelsData['conservedGenes']
                         data = data.loc[~data.index.duplicated(keep='first')].reindex(allGenes).values
@@ -1281,7 +1293,11 @@ class Analysis():
                         data = np.zeros(len(allGenes))
 
                 elif panel == 'binomial':
-                    ylabel='Binomial\n-log(pvalue)'
+                    if togglePublicationFigure:
+                        ylabel='Network\nenrichment'
+                    else:
+                        ylabel='Binomial\n-log(pvalue)'
+
                     try:
                         data = pd.read_hdf(os.path.join(saveDir, 'perGeneStats.h5'), key='df_ranks')
                         if not type(data) is pd.Series:
@@ -1342,6 +1358,14 @@ class Analysis():
 
                 elif panel[:len('combo')] == 'combo':
                     ylabel = panel
+
+                    if ylabel == 'combo3avgs':
+                        if togglePublicationFigure:
+                            ylabel = 'Combination of 3'
+                    elif ylabel == 'combo4avgs':
+                        if togglePublicationFigure:
+                            ylabel = 'Combination of 4'
+
                     try:
                         def norm1(s):
 
@@ -1366,7 +1390,9 @@ class Analysis():
 
                 if not noAverage:
                     ax.plot(range(len(clusters)), data_avg, linewidth=1.0, color='coral', alpha=1.0)
-                    ax.text(0.999, 0.95, 'window = %s' % (2*halfWindowSize + 1), color='coral', ha='right', va='top', transform=ax.transAxes, fontsize=3)
+
+                    if not togglePublicationFigure:
+                        ax.text(0.999, 0.95, 'window = %s' % (2*halfWindowSize + 1), color='coral', ha='right', va='top', transform=ax.transAxes, fontsize=3)
 
                 nandata = np.isnan(data)
                 if np.sum(nandata) > 0:
@@ -1464,7 +1490,10 @@ class Analysis():
                         print('Done', flush=True)
 
                 number = np.loadtxt(os.path.join(saveDir, 'size.txt'), dtype=int)
-                fig.suptitle('Ordering by single cell co-expression\nData: %s\n(%s cells, %s x %s genes)' % (suffix, number[1], number[0], df.shape[1]), fontsize=8, backgroundcolor='white')
+                np.savetxt(os.path.join(saveDir, 'figureInfo.txt'), np.array([['Cells', number[1]], ['Genes', number[0]], ['SelGenes', df.shape[1]]]), fmt='%s')
+
+                if not togglePublicationFigure:
+                    fig.suptitle('Ordering by single cell co-expression\nData: %s\n(%s cells, %s x %s genes)' % (suffix, number[1], number[0], df.shape[1]), fontsize=8, backgroundcolor='white')
 
                 if printStages:
                     print('\tSaving image . . .', end='\t', flush=True)
@@ -1619,9 +1648,9 @@ class Analysis():
 
         return
 
-    def reanalyzeMain(self, **kwargs):
+    def reanalyzeMain(self, case='All', **kwargs):
 
-        '''Reanalyze all-data case 
+        '''Reanalyze case 
 
         Parameters: 
             Any parameters that function 'analyzeCase' can accept
@@ -1636,11 +1665,11 @@ class Analysis():
         '''
 
         try:
-            print('Re-analyzing all-data case', flush=True)
+            print('Re-analyzing %s-data case' % case, flush=True)
             
-            self.analyzeCase(None, toggleAdjustText=True, dpi=300, suffix='All', saveDir=os.path.join(self.bootstrapDir, 'All/'), printStages=True, toggleCalculateMajorMetric=False, toggleExportFigureData=True, toggleCalculateMeasures=False, externalPanelsData=dict(externalPanelsData, conservedGenes=pd.read_excel(os.path.join(self.bootstrapDir, 'All', 'comparison.xlsx'), index_col=1, header=0)['Inter-measures.T50_common_count']), **kwargs)
+            self.analyzeCase(None, toggleAdjustText=True, dpi=300, suffix=case, saveDir=os.path.join(self.bootstrapDir, '%s/' % case), printStages=True, toggleCalculateMajorMetric=False, toggleExportFigureData=True, toggleCalculateMeasures=False, externalPanelsData=dict(externalPanelsData, conservedGenes=pd.read_excel(os.path.join(self.bootstrapDir, case, 'comparison.xlsx'), index_col=1, header=0)['Inter-measures.T50_common_count']), **kwargs)
 
-            shutil.copyfile(os.path.join(self.bootstrapDir, 'All', 'All dendrogram-heatmap-correlation.png'), os.path.join(self.workingDir, 'results.png'))
+            shutil.copyfile(os.path.join(self.bootstrapDir, case, '%s dendrogram-heatmap-correlation.png' % case), os.path.join(self.workingDir, 'results %s.png' % case))
 
         except Exception as exception:
             print(exception)
@@ -1716,41 +1745,72 @@ class Analysis():
             df_m.loc[se_peakAssignments.loc[peak].dropna().values, peak] = 1
         
         df_m = df_m.loc[df_m.sum(axis=1) > 0]
+        print(df_m.shape)
+        df_m = df_m.loc[df_m.sum(axis=1) > (0.05 * df_m.shape[1])]
+        print(df_m.shape)
 
         se_heights = pd.Series(index=['E' + df_m.columns.get_level_values(0).str.split('Experiment ', expand=True).get_level_values(-1) + '.' + df_m.columns.get_level_values(1).astype(str)], data=df_m.columns.get_level_values(-1))
         se_heights.index = se_heights.index.get_level_values(0)
 
+        # Example plot of determining peaks
         if False:
-            se = df.xs('species', level='species', axis=0).copy().xs('Experiment 3', level='experiment')
-            fig, ax = plt.subplots(figsize=(8,2))
-            ax.plot(range(len(se)), se.values, color='coral', linewidth=1.5)
+            if False:
+                self.reanalyzeMain(case='Experiment 1', togglePublicationFigure=True, toggleIncludeHeatmap=False, markersLabelsRepelForce=1.0)
 
-            se_peaks = df_m.xs('Experiment 3', level=0, axis=1)
-            for peak in se_peaks:
-                se_peak = se_peaks[peak]
-                se_peak = se_peak[se_peak == 1]
-                x = np.where(np.isin(se.index.values, se_peak.index.values))[0]
+            maxpeak = False
+
+            e = 'Experiment 1'
+            se = df.xs('species', level='species', axis=0).copy().xs(e, level='experiment')
+
+            fig, ax = plt.subplots(figsize=(8,2))
+            ax.plot(range(len(se)), se.values, color='coral', linewidth=1.5, zorder=np.inf)
+
+            if maxpeak:
+                x = np.where(np.isin(se.index.values, getGenesOfPeak(se, peak=np.argmax(se))))[0]
                 y = se.iloc[x].values
                 ax.fill_between(x, y, facecolor='grey', edgecolor='grey', alpha=0.5)
-                ax.scatter(x[np.argmax(y)] - 1, max(y), facecolor='k', edgecolor='k', s=6., alpha=1., zorder=np.inf)
+
+                pg = se.index.values[x][np.argmax(y)]
+                ax.text(x[np.argmax(y)], -0.001, pg, fontsize=8, rotation=90, va='top', ha='center')
+                ax.plot([x[np.argmax(y)] - 1, x[np.argmax(y)] - 1], [0, max(y)], color='k', linewidth=1., alpha=1.)
+            else:
+                se_peaks = df_m.xs(e, level=0, axis=1)
+
+                for peak in se_peaks[-1:]:
+                    se_peak = se_peaks[peak]
+                    se_peak = se_peak[se_peak == 1]
+                    x = np.where(np.isin(se.index.values, se_peak.index.values))[0]
+                    y = se.iloc[x].values
+
+                    c = 'grey' if peak[1] != 1. else 'blue'
+                    ax.fill_between(x, y, facecolor=c, edgecolor=c, alpha=0.5)
+
+                    pg = se.index.values[x][np.argmax(y)]
+                    ax.text(x[np.argmax(y)], -0.001, pg, fontsize=8, rotation=90, va='top', ha='center')
+                    ax.plot([x[np.argmax(y)] - 1, x[np.argmax(y)] - 1], [0, max(y)], color='k', linewidth=1., alpha=1.)
 
             ax.set_xticks([])
             ax.set_xticklabels([])
-            yticks = np.round(ax.get_ylim(), 2)
+            yticks = (0, 0.03)
             ax.set_yticks(yticks)
             ax.set_yticklabels(yticks)
-            ax.tick_params(axis='y', labelsize=6, width=0.75, length=3)
-            ax.text(-0.04, 0.5, 'combo3', fontsize=8, rotation=90, va='center', ha='right', transform=ax.transAxes)
+            ax.tick_params(axis='y', labelsize=8, width=0.75, length=3)
+            ax.text(-0.05, 0.5, 'Combination 3', fontsize=10, rotation=90, va='center', ha='right', transform=ax.transAxes)
             ax.set_xlim([0, len(se)])
-            ax.set_ylim([0, 0.02])
+            ax.set_ylim([0, 0.03])
 
-            plt.show()
-            exit()
+            fig.tight_layout()
+            if maxpeak:
+                fig.savefig(self.workingDir + 'one example maxpeaks %s.png' % variant, dpi=600)
+            else:
+                fig.savefig(self.workingDir + 'one example peaks %s.png' % variant, dpi=600)
+
+            plt.close(fig)
 
         Z1 = hierarchy.linkage(df_m, 'ward')
         Z2 = hierarchy.linkage(df_m.T, 'ward')
 
-        O1 = hierarchy.dendrogram(Z1, no_plot=True, get_leaves=True)['leaves']
+        O1 = hierarchy.dendrogram(Z1, no_plot=True, get_leaves=True)['leaves'][::-1]
         O2 = hierarchy.dendrogram(Z2, no_plot=True, get_leaves=True)['leaves']
 
         df_m = df_m.iloc[O1]
@@ -1764,42 +1824,6 @@ class Analysis():
 
         df_m.index = pd.MultiIndex.from_arrays([df_m.index, clusters1], names=['gene', 'cluster'])
         df_m.columns = pd.MultiIndex.from_arrays(['E' + df_m.columns.get_level_values(0).str.split('Experiment ', expand=True).get_level_values(-1) + '.' + df_m.columns.get_level_values(1).astype(str), clusters2], names=['peak', 'cluster'])
-
-        if False:
-            fig = plt.figure(figsize=(8, 10))
-            n_clusters = nG
-            ax = fig.add_axes([0.1, 0.25, 0.15, 0.5], frame_on=False)
-            origLineWidth = matplotlib.rcParams['lines.linewidth']
-            matplotlib.rcParams['lines.linewidth'] = 0.5
-            D = hierarchy.dendrogram(Z1, ax=ax, color_threshold=Z1[-n_clusters + 1][2], above_threshold_color='k', orientation='left')
-            matplotlib.rcParams['lines.linewidth'] = origLineWidth
-            ax.set_xticklabels([])
-            ax.set_xticks([])
-            ax.set_yticklabels([])
-            ax.set_yticks([])
-            ax.set_title('Genes')
-
-            n_clusters = nE
-            ax = fig.add_axes([0.25, 0.75, 0.5, 0.15], frame_on=False)
-            origLineWidth = matplotlib.rcParams['lines.linewidth']
-            matplotlib.rcParams['lines.linewidth'] = 0.5
-            D = hierarchy.dendrogram(Z2, ax=ax, color_threshold=Z2[-n_clusters + 1][2], above_threshold_color='k', orientation='top')
-            matplotlib.rcParams['lines.linewidth'] = origLineWidth
-            ax.set_xticklabels([])
-            ax.set_xticks([])
-            ax.set_yticklabels([])
-            ax.set_yticks([])
-            ax.set_title('Peaks')
-
-            ax = fig.add_axes([0.25, 0.25, 0.5, 0.5], frame_on=False)
-            im = ax.imshow(df_m.values, cmap=plt.cm.Greens, aspect='auto', interpolation='None', extent=(-0.5, df_m.shape[0] - 0.5, df_m.shape[1] - 0.5, -0.5))
-            ax.set_xticklabels([])
-            ax.set_xticks([])
-            ax.set_yticklabels([])
-            ax.set_yticks([])
-            
-            plt.show()
-            exit()
 
         we = pd.Series(index=df_m.columns, data=se_heights[df_m.columns.get_level_values(0)].values).droplevel(1) # 570 peaks
         ndict = dict()
@@ -1816,6 +1840,7 @@ class Analysis():
                     ndict[ci] = cleanListString(sorted(df_temp.index.values.tolist()))
 
         sef = pd.Series(resf)
+        print(sef)
         sed = pd.Series(index=sef.index, data=sef.groupby(level=0).sum().reindex(sef.droplevel(1).index).values)
         seh = pd.Series(resh) * sef / sed
 
@@ -1828,14 +1853,146 @@ class Analysis():
         df['frequency'] = np.zeros(len(df['frequency']))
         df = df[['frequency', 'height', 'length', 'genes']]
 
+        locnbootstap = np.unique(se_peakAssignments.index.get_level_values(0)).shape[0]
+
         for i, group in enumerate(df['genes'].values):
             group = group.split(', ')
             fractions = df_m.droplevel('cluster').loc[group].sum(axis=0) / len(group)
-            df.loc[df.index[i], 'frequency'] = len(fractions[fractions >= fcutoff]) / df_m.shape[1]
+            df.loc[df.index[i], 'frequency'] = len(fractions[fractions >= fcutoff]) / locnbootstap
 
         df = df.sort_values(by='frequency', ascending=False)
         print(df)
 
-        df.to_excel(self.workingDir + 'All peaks %s.xlsx' % variant, index=False)
+        df.columns = ['Fequency of group', 'Average peak height', 'Number of genes', 'Genes']
+        df.index = np.array(range(len(df.index))) + 1
+        df.index.name = 'Group'
+        df.to_excel(self.workingDir + 'All peaks %s.xlsx' % variant)
+
+        if False:
+            from pyiomica.enrichmentAnalyses import KEGGAnalysis, GOAnalysis, ReactomeAnalysis, ExportEnrichmentReport, ExportReactomeEnrichmentReport
+
+            dataForAnalysis = df['Genes'].str.split(', ').to_dict()
+
+            resKEGG = KEGGAnalysis(dataForAnalysis)
+            ExportEnrichmentReport(resKEGG, AppendString='KEGG11', OutputDirectory=self.workingDir)
+
+            resGO = GOAnalysis(dataForAnalysis)
+            for key in resGO.keys():
+                resGO[key] = {k:v for k,v in resGO[key].items() if v[2][1]=='biological_process'}
+            ExportEnrichmentReport(resGO, AppendString='GO11', OutputDirectory=self.workingDir)
+            
+            resReactome = ReactomeAnalysis(dataForAnalysis)
+            resReactome = {k:v.loc[v['Entities FDR'] < 0.05] for k,v in resReactome.items()}
+            ExportReactomeEnrichmentReport(resReactome, AppendString='Reactome11', OutputDirectory=self.workingDir)
+
+        # Plot all-peaks heatmap
+        if True:
+            fig = plt.figure(figsize=(10, 10))
+
+            groupsColors = False
+
+            # Genes dendrogram
+            if True:
+                n_clusters = nG
+                ax = fig.add_axes([0.1, 0.25, 0.15, 0.5], frame_on=False)
+                origLineWidth = matplotlib.rcParams['lines.linewidth']
+                matplotlib.rcParams['lines.linewidth'] = 0.5
+                if groupsColors:
+                    D = hierarchy.dendrogram(Z1, ax=ax, color_threshold=Z1[-n_clusters + 1][2], above_threshold_color='k', orientation='left')
+                else:
+                    D = hierarchy.dendrogram(Z1, ax=ax, color_threshold=0, above_threshold_color='k', orientation='left')
+                matplotlib.rcParams['lines.linewidth'] = origLineWidth
+                ax.set_xticklabels([])
+                ax.set_xticks([])
+                ax.set_yticklabels([])
+                ax.set_yticks([])
+                ax.set_title('Genes groups')
+
+            # Peaks dendrogram
+            if True:
+                n_clusters = nE
+                ax = fig.add_axes([0.25, 0.75, 0.5, 0.15], frame_on=False)
+                origLineWidth = matplotlib.rcParams['lines.linewidth']
+                matplotlib.rcParams['lines.linewidth'] = 0.5
+                if groupsColors:
+                    D = hierarchy.dendrogram(Z2, ax=ax, color_threshold=Z2[-n_clusters + 1][2], above_threshold_color='k', orientation='top')
+                else:
+                    D = hierarchy.dendrogram(Z2, ax=ax, color_threshold=0, above_threshold_color='k', orientation='top')
+                matplotlib.rcParams['lines.linewidth'] = origLineWidth
+                ax.set_xticklabels([])
+                ax.set_xticks([])
+                ax.set_yticklabels([])
+                ax.set_yticks([])
+                ax.set_title('Peaks groups')
+
+            # Heatmap
+            if True:
+                heatdata = df_m.values * we.values[None, :]
+                ax = fig.add_axes([0.25, 0.25, 0.5, 0.5], frame_on=True)
+                #cmap = matplotlib.colors.LinearSegmentedColormap.from_list('WB', [(1, 1, 1), (0, 0, 0.5)], N=2)
+                cmap = plt.cm.jet_r
+                cmap.set_bad('white')
+                im = ax.imshow(np.ma.array(heatdata, mask=(heatdata==0.)), cmap=cmap, aspect='auto', interpolation='None', extent=(-0.5, df_m.shape[0] - 0.5, df_m.shape[1] - 0.5, -0.5), vmin=0., vmax=1.)
+                ax.set_xticklabels([])
+                ax.set_xticks([])
+                ax.set_yticklabels([])
+                ax.set_yticks([])
+            
+            # Box annotations
+            if True:
+                xl, yl = ax.get_xlim()[1], ax.get_ylim()[0]
+                sea = pd.Series(index=pd.MultiIndex.from_tuples(df_m.index.values), data=df_m.index.values).apply(pd.Series)
+                gsea = sea.groupby(level=1).count()[0]
+                dexp = pd.Series(index=df_m.columns.get_level_values(1).values, data=df_m.columns.get_level_values(1).values)
+                gexp = dexp.groupby(level=0).count()
+
+                def ann(xy2, clusterG, clusterE, n = 10):
+
+                    xy1 = xl * np.mean(np.where(dexp == clusterE)[0]) / len(dexp), yl * np.mean(np.where(sea[1] == clusterG)[0]) / len(sea)
+                    xy2 = xy2[0] * xl, xy2[1] * yl
+
+                    genes = sea.xs(key=clusterG, level=1)[0].values
+                    sgenes = '\n'.join([cleanListString(g) for g in np.array_split(genes, int(len(genes)/n))])
+
+                    ax.annotate(sgenes, xy=xy1, xytext=xy2, fontsize=5, ha='left', va='center', arrowprops=dict(arrowstyle="-", lw=0.5), bbox=dict(boxstyle="square,pad=0.3", fc="w", ec="k", lw=0.25), zorder=np.inf)
+
+                    return
+                
+                ann((0.76, 1.14), 8, 6, n=5)
+                ann((0.76, 1.05), 7, 7, n=5)
+
+                ann((0.39, 1.09), 1, 2, n=5)
+
+                ann((-0.3, 1.125), 0, 0, n=10)
+                ann((-0.3, 1.05), 6, 1, n=10)
+
+            # Colorbar Yes/No
+            if False:
+                axColor = fig.add_axes([0.68, 0.25, 0.1, 0.1], frame_on=False)
+                axColor.set_xticks([])
+                axColor.set_xticklabels([])
+                axColor.set_yticks([])
+                axColor.set_yticklabels([])
+                clb = fig.colorbar(im, ax=axColor)
+                clb.set_ticks([0.25, 0.75])
+                clb.set_ticklabels(['No', 'Yes'])
+                clb.ax.tick_params(labelsize=6)
+
+            # Colorbar
+            if True:
+                axColor = fig.add_axes([0.72, 0.25, 0.05, 0.3], frame_on=False)
+                axColor.set_xticks([])
+                axColor.set_xticklabels([])
+                axColor.set_yticks([])
+                axColor.set_yticklabels([])
+                clb = fig.colorbar(im, ax=axColor)
+                clb.set_label(label='Peak height', fontsize=6)
+                #clb.set_ticks([0.25, 0.75])
+                #clb.set_ticklabels(['No', 'Yes'])
+                clb.ax.tick_params(labelsize=6)
+            
+            fig.savefig(self.workingDir + 'all peaks %s.png' % variant, dpi=600)
+            fig.savefig(self.workingDir + 'all peaks %s.pdf' % variant)
+            plt.close(fig)
 
         return

@@ -125,8 +125,12 @@ if __name__ == '__main__':
     args = dict(genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC23, nCPUs=4 if platform.system()=="Windows" else 20, 
                 panels=['combo3avgs', 'combo4avgs', 'fraction', 'binomial', 'markers', 'top50'], nBootstrap=100, perEachOtherCase=True)
 
-    dirHuman = '/mnt/home/domansk6/Projects/Endothelial/results/PanglaoDB_byDCS_human/'
-    dirMouse = '/mnt/home/domansk6/Projects/Endothelial/results/PanglaoDB_byDCS_mouse/'
+    if platform.system() == "Windows":
+        dirHuman = 'd:/Projects/A_Endothelial/VS/Endothelial/results/PanglaoDB_byDCS_human/'
+        dirMouse = 'd:/Projects/A_Endothelial/VS/Endothelial/results/PanglaoDB_byDCS_mouse/'
+    else:
+        dirHuman = '/mnt/home/domansk6/Projects/Endothelial/results/PanglaoDB_byDCS_human/'
+        dirMouse = '/mnt/home/domansk6/Projects/Endothelial/results/PanglaoDB_byDCS_mouse/'
 
     anHuman = Analysis(**dict(args, workingDir=dirHuman, otherCaseDir=dirMouse))
     #prepareInput(anHuman.dataSaveName, 'Homo sapiens')
@@ -145,15 +149,62 @@ if __name__ == '__main__':
     #anHuman.reanalyzeMain()
     #anHuman.analyzeCombinationVariant('Avg combo3avgs')
     #anHuman.analyzeCombinationVariant('Avg combo4avgs')
-    anHuman.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=15, nE=30, fcutoff=0.5, width=50)
-    anHuman.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=15, nE=30, fcutoff=0.5, width=50)
+    #anHuman.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=15, nE=30, fcutoff=0.5, width=50)
+    #anHuman.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=15, nE=30, fcutoff=0.5, width=50)
     #anHuman.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=20)  
     #anHuman.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=20)  
 
     #anMouse.reanalyzeMain()
     #anMouse.analyzeCombinationVariant('Avg combo3avgs')
     #anMouse.analyzeCombinationVariant('Avg combo4avgs')
-    anMouse.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=15, nE=30, fcutoff=0.5, width=50)
-    anMouse.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=15, nE=30, fcutoff=0.5, width=50)
+    #anMouse.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=15, nE=30, fcutoff=0.5, width=50)
+    #anMouse.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=15, nE=30, fcutoff=0.5, width=50)
     #anMouse.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=20)  
     #anMouse.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=20)  
+
+    # Bootstrap max-peak plot
+    if False:
+        df = pd.read_excel(anMouse.workingDir + '%s bootstrap_in-peak_genes_SD.xlsx' % 'Avg combo3avgs', sheet_name='Bootstrap lists', index_col=None, header=0)
+        df_temp = pd.DataFrame(index=np.unique(df.stack().dropna().values), columns=df.columns).fillna(0.)
+        for col in df.columns:
+            df_temp.loc[df[col].dropna().values, col] = 1.
+
+        df_temp = df_temp.iloc[scipy.cluster.hierarchy.dendrogram(scipy.cluster.hierarchy.linkage(df_temp, 'ward'), no_plot=True, get_leaves=True)['leaves']]
+        df_temp = df_temp.T.iloc[scipy.cluster.hierarchy.dendrogram(scipy.cluster.hierarchy.linkage(df_temp.T, 'ward'), no_plot=True, get_leaves=True)['leaves']].T
+
+        df_temp = df_temp.loc[df_temp.sum(axis=1) > (0.1 * df_temp.shape[1])]
+
+        print(df_temp)
+
+        if True:
+            fig = plt.figure(figsize=(12, 10))
+
+            ax = fig.add_axes([0.25, 0.2, 0.65, 0.7])
+            cmap = matplotlib.colors.LinearSegmentedColormap.from_list('WB', [(1, 1, 1), (0, 0, 0.5)], N=2)
+            im = ax.imshow(df_temp.values, cmap=cmap, interpolation='None', aspect='auto')
+
+            ax.set_xticks(range(df_temp.shape[1]))
+            ax.set_xticklabels(df_temp.columns, rotation=90, fontsize=5)
+            ax.set_xlim([-0.5, df_temp.shape[1] - 0.5])
+
+            ax.set_yticks(range(df_temp.shape[0]))
+            ax.set_yticklabels(df_temp.index, rotation=0, fontsize=5)
+            ax.set_ylim([-0.5, df_temp.shape[0] - 0.5])
+
+            if True:
+                axColor = fig.add_axes([0.825, 0.8, 0.1, 0.1], frame_on=False)
+                axColor.set_xticks([])
+                axColor.set_xticklabels([])
+                axColor.set_yticks([])
+                axColor.set_yticklabels([])
+                clb = fig.colorbar(im, ax=axColor)
+                clb.set_ticks([0.25, 0.75])
+                clb.set_ticklabels(['No', 'Yes'])
+                clb.ax.tick_params(labelsize=6)
+
+            fig.savefig(anMouse.workingDir + 'combo3 bootstrap.png', dpi=600)
+
+    anMouse.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=15, nE=15, fcutoff=0.5, width=50)
+
+    #anHuman.reanalyzeMain(togglePublicationFigure=True, toggleIncludeHeatmap = False, markersLabelsRepelForce = 1.25)
+    #anMouse.reanalyzeMain(togglePublicationFigure=True, toggleIncludeHeatmap = False, markersLabelsRepelForce = 1.5)

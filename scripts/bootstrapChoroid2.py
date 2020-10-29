@@ -47,7 +47,7 @@ if __name__ == '__main__':
     else:
         wdir = '/mnt/home/domansk6/Projects/Endothelial/results/'
 
-    aHuman = Analysis(workingDir=wdir + 'choroid Voigt remapped/', 
+    aHuman = Analysis(workingDir=wdir + 'choroid Voigt Mix 2/', 
                     otherCaseDir=wdir + 'PanglaoDB_byDCS_mouse/bootstrap/All/',
                     genesOfInterest=receptorsListHugo_2555, 
                     knownRegulators=gEC23, 
@@ -67,7 +67,7 @@ if __name__ == '__main__':
     #aHuman.analyzeCombinationVariant('Avg combo4avgs')
 
     aHuman.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=15, nE=30, fcutoff=0.5, width=50)
-    #aHuman.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=8, nE=30, fcutoff=0.5, width=50)
+    aHuman.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=8, nE=30, fcutoff=0.5, width=50)
 
     #aHuman.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=20)
     #aHuman.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=20)

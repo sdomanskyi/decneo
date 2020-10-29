@@ -50,6 +50,10 @@ else:
     RDataDirName = '/mnt/research/piermarolab/data/PanglaoDBh5/Raw/'
     MetadataDirName = '/mnt/research/piermarolab/Sergii/'
     processedDataDir = '/mnt/research/piermarolab/Sergii/processedDataDir/'
+
+from string import Template
+panglaoURL = Template('https://panglaodb.se/data_dl.php?sra=${SRA}&srs=${SRS}&filetype=R&datatype=readcounts')
+RDataFileName = lambda SRA, SRS: '%s%s.sparse.RData.h5' % (SRA, '_' + SRS if SRS!='notused' else '')
     
 def write(data, fileName, jsonFormat = False):
     
