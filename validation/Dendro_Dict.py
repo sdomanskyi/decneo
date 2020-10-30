@@ -831,9 +831,21 @@ def get_window (gene_stats_df,
         gene_stats_df.columns = list(gene_stats_df.columns[:-1]) +[i+"_WS%i"%ws]
     
     return gene_stats_df
+"""
+Get the merged statistics and adds it to each data frame in gene_stats_dict and returns the peak
+count for each gene.
 
+Parameters:
+
+      gene_stats_dict: Dictionary of dataframes of gene statistics to use use for peak count.
+      
+      ws: Window size to use for sliding window smoothing.
+      
+      coi_dict: Dictionary where values are the columns to merge and keys are what to call the
+                new merged data column.
+"""
 def get_window_peak(gene_stats_dict, 
-                    ws = 30,
+                    ws = 21,
                     coi_dict = {"Independent-3":["PCT.1","Log_BN","Conservation"],
                     "All-4":["PCT.1","Log_BN","Conservation", "Marker"]},
                     compare_dendro = None):
