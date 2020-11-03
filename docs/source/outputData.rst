@@ -33,8 +33,8 @@ It will also output an analysis report detailing all results and figures.
           - Saved dendrogram, heatmap, and bargraphs, see example below
         * - metricFile.h5
           - Gene expression data for specified metric
-        * - per-gene-measures-correlation.(h5/xlsx) 
-          - TEXT
+        * - per-gene-measures-correlation.(h5 & xlsx) 
+          - Intra-measures from each gene
         * - perGeneStats.h5
           - For each gene holds fraction of cells expressing it, median expression, and per batch counts
         * - size.txt
@@ -55,7 +55,7 @@ It will also output an analysis report detailing all results and figures.
         * - metricsFile.h5 
           - Gene expression data for specified metric
         * - per-gene-measures-correlation.(h5/xlsx) 
-          - TEXT
+          - Intra-measures from each gene
         * - perGeneStats.h5
           - For each gene holds fraction of cells expressing it, median expression, and per batch counts
         * - size.txt
@@ -72,7 +72,7 @@ It will also output an analysis report detailing all results and figures.
         * - Files 
           - Description 
         * - combined_M_aligned.h5 
-          - TEXT
+          - Temporary file that holds distribution data; removed when analysis is completed.
         * - se_distribution.png 
           - Plotted counts distribution
         * - se_distribution.xlsx
@@ -112,7 +112,7 @@ It will also output an analysis report detailing all results and figures.
 **Example of result figures using PangLao DB Endothelial Lung Datasets** 
 
 .. thumbnail:: images/ExampleDendro.png
-    :title: Method Pipeline
+    :title: Example of combination plot
     :alt: Cannot load image
     :align: center
     :download: false

@@ -1,9 +1,9 @@
 from decneo.commonFunctions import *
-from decneo.analysisPipeline import Analysis
+from decneo.analysisPipeline import Analysis, process
 
 def prepareInputData_human_McCracken():
 
-    dir = 'd:/Projects/A_Endothelial/3. McCracken GSE131736/pd/'
+    dir = '/mnt/research/piermarolab/data/3. McCracken GSE131736/pd/'
 
     def readOne(fileName, celltype, batch):
 
@@ -54,7 +54,7 @@ def prepareInputData_human_McCracken():
 
 def prepareInputData_mouse_Han():
 
-    dir = 'd:/Projects/A_Endothelial/5. MCA/MCA1.0/rmbatch_dge/'
+    dir = '/mnt/research/piermarolab/data/5. MCA/MCA1.0/rmbatch_dge/'
 
     def readOne(fileName, celltype, batch):
 
@@ -103,43 +103,9 @@ def prepareInputData_mouse_Han():
 
 if __name__ == '__main__':
 
-    args = dict(genesOfInterest=TF, 
-                knownRegulators=TFmarkers, 
-                nCPUs=8 if platform.system()=="Windows" else 10, 
-                panels=['combo3avgs', 'combo4avgs', 'fraction', 'binomial', 'markers', 'top50'], 
-                nBootstrap=100, 
-                perEachOtherCase=True)
+    wdir = '/mnt/research/piermarolab/Sergii/results/ESC/'
 
-    aHuman = Analysis(**dict(args, workingDir='results/ESC/McCracken_hESC_vs_day8/', otherCaseDir='results/ESC/Han_mESC_vs_mesenchyme/'))
-    aMouse = Analysis(**dict(args, workingDir='results/ESC/Han_mESC_vs_mesenchyme/', otherCaseDir='results/ESC/McCracken_hESC_vs_day8/'))
-
-    #aHuman.prepareDEG(*prepareInputData_human_McCracken())
-    #aHuman.preparePerBatchCase(exprCutoff=0.05)
-    #aHuman.prepareBootstrapExperiments()
-
-    #aMouse.prepareDEG(*prepareInputData_mouse_Han())
-    #aMouse.preparePerBatchCase(exprCutoff=0.005)
-    #aMouse.prepareBootstrapExperiments()
-
-    #aHuman.analyzeBootstrapExperiments()
-    aMouse.analyzeBootstrapExperiments()
-    aHuman.analyzeBootstrapExperiments()
-            
-    aHuman.reanalyzeMain()
-    aHuman.analyzeCombinationVariant('Avg combo3avgs')
-    aHuman.analyzeCombinationVariant('Avg combo4avgs')
-
-    aMouse.reanalyzeMain()
-    aMouse.analyzeCombinationVariant('Avg combo3avgs')
-    aMouse.analyzeCombinationVariant('Avg combo4avgs')
-
-    #aHuman.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=10)
-    #aHuman.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=10)
-    #aMouse.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=10)
-    #aMouse.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=10)
-
-    aHuman.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=8, nE=30, fcutoff=0.5, width=50)
-    aHuman.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=8, nE=30, fcutoff=0.5, width=50)
-
-    aMouse.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=8, nE=30, fcutoff=0.5, width=50)
-    aMouse.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=8, nE=30, fcutoff=0.5, width=50)
+    process(*prepareInputData_human_McCracken(), *prepareInputData_mouse_Han(),
+            wdir + 'McCracken_hESC_vs_day8/', wdir + 'Han_mESC_vs_mesenchyme/', 
+            nCPUs=8 if platform.system()=="Windows" else 10, parallelBootstrap=True,
+            genesOfInterest=TF, knownRegulators=TFmarkers, exprCutoff1=0.05, exprCutoff2=0.005, perEachOtherCase=True)

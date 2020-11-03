@@ -1,9 +1,8 @@
 from decneo.commonFunctions import *
-from decneo.analysisPipeline import Analysis
+from decneo.analysisPipeline import Analysis, process
 
 def prepareDEGforTissues(dataSaveName, species, tissues, preprocessedDataPath = '/mnt/research/piermarolab/Sergii/Endothelial by PanglaoDB definition/'):
 
-    from .PanglaoDBannotation import getPanglaoDBAnnotationsSummaryDf
     se_anno = getPanglaoDBAnnotationsSummaryDf(MetadataDirName)[['Tissue origin of the sample', 'Species']].droplevel('Cluster index').set_index('Species', append=True)[['Tissue origin of the sample']]
     se_anno.columns = ['tissue']
     se_anno = se_anno.loc[~se_anno.index.duplicated(keep='first')]
@@ -42,30 +41,11 @@ def prepareDEGforTissues(dataSaveName, species, tissues, preprocessedDataPath = 
 
 if __name__ == '__main__':
 
-    args = dict(genesOfInterest=receptorsListHugo_2555, 
-                knownRegulators=gEC23, 
-                nCPUs=4 if platform.system()=="Windows" else 10, 
-                panels=['combo3avgs', 'combo4avgs', 'fraction', 'binomial', 'markers', 'top50'], 
-                nBootstrap=100, 
-                perEachOtherCase=False)
+    prepareDEGforTissues('/mnt/research/piermarolab/Sergii/results/PanglaoDB_lung_mouse/data.h5', 
+                         'Mus musculus', ['Lung', 'Lung mesenchyme', 'Fetal lung', 'Lung endoderm'])
 
-    humanPanglaoAllBatchesDirAlona = '/mnt/research/piermarolab/Sergii/Endothelial by PanglaoDB definition/EC all bootstrap 100 w21/Homo sapiens/All/'
-    humanPanglaoAllBatchesDirDCS = '/mnt/home/domansk6/Projects/Endothelial/results/workflow/PanglaoDB EC all cells w21/Homo sapiens/' 
-
-    an = Analysis(**dict(args, workingDir='results/PanglaoDB_lung_mouse/', otherCaseDir=humanPanglaoAllBatchesDirDCS))
-
-    if not os.path.isfile(an.dataSaveName):
-        prepareDEGforTissues(an.dataSaveName, 'Mus musculus', ['Lung', 'Lung mesenchyme', 'Fetal lung', 'Lung endoderm'])
-    
-    #an.preparePerBatchCase(exprCutoff=0.05)
-    #an.prepareBootstrapExperiments()
-    an.analyzeBootstrapExperiments()
-    an.reanalyzeMain()
-
-    an.analyzeCombinationVariant('Avg combo3avgs')
-    an.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=20)  
-    an.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=8, nE=30, fcutoff=0.5, width=50)
-
-    an.analyzeCombinationVariant('Avg combo4avgs')
-    an.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=20)  
-    an.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=8, nE=30, fcutoff=0.5, width=50)
+    process(*prepareInputData_human_Choroid_remapped(), *(None, None),
+            '/mnt/research/piermarolab/Sergii/results/PanglaoDB_lung_mouse/', 
+            '/mnt/research/piermarolab/Sergii/PanglaoDB_byAlona/PanglaoDB_byDCS_human/bootstrap/All/', 
+            nCPUs=4 if platform.system()=="Windows" else 20, parallelBootstrap=True,
+            genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC23, exprCutoff1=0.05, perEachOtherCase=False)    

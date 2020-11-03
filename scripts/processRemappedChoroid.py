@@ -149,7 +149,6 @@ if __name__ == '__main__':
         makeBarplot(se[se!='Failed QC'].index.get_level_values('batch'), DCS.saveDir, 'barplotBy_batches')
         makeBarplot(se[se == 'Endothelial'].index.get_level_values('batch'), DCS.saveDir, 'barplotEC_By_batches')
 
-
     if False:
         df_projection = pd.read_hdf(DCS.fileHDFpath, key='df_projection')
         DCS.makeProjectionPlot(df_projection.values, df_projection.columns.get_level_values('batch'), legend=True, labels=True, suffix='byBatches', rightShift = 0.4)
@@ -158,7 +157,7 @@ if __name__ == '__main__':
 
         makeGeneProjectionPlot(['NRP1', 'ITGA6', 'PECAM1', 'KDR', 'LIFR', 'IL6ST', 'ROBO4', 'PLXND1', 'OSMR'], saveDir='remappedChoroid4567_DCS/')
 
-    # ?
+    # Other dev stuff
     if False:
         se = DCS.loadAnnotatedLabels()
         print(se)

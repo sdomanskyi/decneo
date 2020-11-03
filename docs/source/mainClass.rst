@@ -16,6 +16,9 @@
 |
 |
 
+.. automethod:: decneo.analysisPipeline.process
+
+
 .. autoclass:: decneo.analysisPipeline.Analysis
     :members:
     :undoc-members:

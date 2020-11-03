@@ -142,7 +142,7 @@ def getGenesOfPeak(se, peak=None, heightCutoff = 0.5, maxDistance = None):
         r = range(i0 + 1, i0 + 1 + maxDistance, 1)
     for i in r:
         try:
-            if se.iloc[i] >= (heightCutoff * se.iloc[peak]):
+            if se.iloc[i] >= (heightCutoff * se.iloc[i0]):
                 genes.append(se.index[i])
             else:
                 break
@@ -155,7 +155,7 @@ def getGenesOfPeak(se, peak=None, heightCutoff = 0.5, maxDistance = None):
         r = range(i0 - 1, max(0, i0 - 1 - maxDistance), -1)
     for i in r:
         try:
-            if se.iloc[i] >= (heightCutoff * se.iloc[peak]):
+            if se.iloc[i] >= (heightCutoff * se.iloc[i0]):
                 genes.append(se.index[i])
             else:
                 break

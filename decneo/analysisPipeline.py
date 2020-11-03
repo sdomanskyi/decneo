@@ -46,7 +46,7 @@ class Analysis():
        
     '''
 
-    def __init__(self, workingDir = '', otherCaseDir = '', genesOfInterest = None, knownRegulators = None, nCPUs = 1, panels = None, nBootstrap = 100, majorMetric = 'correlation', perEachOtherCase = False, metricsFile = 'metricsFile.h5', seed = None, PCNpath = 'data/'):
+    def __init__(self, workingDir = '', otherCaseDir = '', genesOfInterest = None, knownRegulators = None, nCPUs = 1, panels = None, nBootstrap = 100, majorMetric = 'correlation', perEachOtherCase = False, metricsFile = 'metricsFile.h5', seed = None, PCNpath = 'data/', minBatches = 5, pseudoBatches = 10):
 
         '''Function called automatically and sets up working directory, files, and input information'''
 
@@ -81,6 +81,9 @@ class Analysis():
         self.panels = panels
         self.nBootstrap = nBootstrap
         self.majorMetric = majorMetric
+
+        self.minBatches = minBatches
+        self.pseudoBatches = pseudoBatches
 
         self.perEachOtherCase = perEachOtherCase
 
@@ -155,6 +158,13 @@ class Analysis():
             prepareDEG(dfa, dfb)
         '''
     
+        nOriginalBatches = len(np.unique(dfa.columns.get_level_values('batch').values))
+        if nOriginalBatches < self.minBatches:
+            dfa.columns = pd.MultiIndex.from_arrays([np.random.permutation(np.hstack([np.array([str(i)]*len(v), dtype=str) for i, v in enumerate(np.array_split(dfa.columns.get_level_values('batch').values, self.pseudoBatches))])), dfa.columns.get_level_values('cell')], names=['batch', 'cell'])
+            dfb.columns = pd.MultiIndex.from_arrays([np.random.permutation(np.hstack([np.array([str(i)]*len(v), dtype=str) for i, v in enumerate(np.array_split(dfb.columns.get_level_values('batch').values, self.pseudoBatches))])), dfb.columns.get_level_values('cell')], names=['batch', 'cell'])
+
+            print('Original bathces:', nOriginalBatches, '\tGenerated %s pseudobatches:' % self.pseudoBatches, dfa.shape, dfb.shape)
+
         print('Saving expression data', flush=True)
         dfa.to_hdf(self.dataSaveName, key='df', mode='a', complevel=4, complib='zlib')
 
@@ -743,7 +753,12 @@ class Analysis():
             dfs = pd.concat(dfs, axis=0, sort=False).reset_index(drop=True).replace(np.nan, 'RemoveNaN')
 
             print('\nAligning genes', flush=True)
-            df = pd.DataFrame(index=range(len(dfs)), columns=np.unique(dfs.values.flatten()), data=False, dtype=np.bool_).drop('RemoveNaN', axis=1)
+            df = pd.DataFrame(index=range(len(dfs)), columns=np.unique(dfs.values.flatten()), data=False, dtype=np.bool_)
+            try:
+                df = df.drop('RemoveNaN', axis=1)
+            except:
+                pass
+
             df[:] = (df.columns.values==dfs.values[..., None]).any(axis=1)
             print(df)
 
@@ -780,6 +795,8 @@ class Analysis():
             se_per.plot()
             plt.savefig(workingDir + 'se_percentile_variation_%s.png' % q, dpi=300)
             plt.clf()
+
+        os.remove(workingDir + 'combined_%s_aligned.h5' % M)
 
         return
 
@@ -1868,6 +1885,7 @@ class Analysis():
         df.index.name = 'Group'
         df.to_excel(self.workingDir + 'All peaks %s.xlsx' % variant)
 
+        # Enrichment analysis
         if False:
             from pyiomica.enrichmentAnalyses import KEGGAnalysis, GOAnalysis, ReactomeAnalysis, ExportEnrichmentReport, ExportReactomeEnrichmentReport
 
@@ -1939,7 +1957,7 @@ class Analysis():
                 ax.set_yticks([])
             
             # Box annotations
-            if True:
+            if False:
                 xl, yl = ax.get_xlim()[1], ax.get_ylim()[0]
                 sea = pd.Series(index=pd.MultiIndex.from_tuples(df_m.index.values), data=df_m.index.values).apply(pd.Series)
                 gsea = sea.groupby(level=1).count()[0]
@@ -1966,18 +1984,6 @@ class Analysis():
                 ann((-0.3, 1.125), 0, 0, n=10)
                 ann((-0.3, 1.05), 6, 1, n=10)
 
-            # Colorbar Yes/No
-            if False:
-                axColor = fig.add_axes([0.68, 0.25, 0.1, 0.1], frame_on=False)
-                axColor.set_xticks([])
-                axColor.set_xticklabels([])
-                axColor.set_yticks([])
-                axColor.set_yticklabels([])
-                clb = fig.colorbar(im, ax=axColor)
-                clb.set_ticks([0.25, 0.75])
-                clb.set_ticklabels(['No', 'Yes'])
-                clb.ax.tick_params(labelsize=6)
-
             # Colorbar
             if True:
                 axColor = fig.add_axes([0.72, 0.25, 0.05, 0.3], frame_on=False)
@@ -1996,3 +2002,176 @@ class Analysis():
             plt.close(fig)
 
         return
+
+    def bootstrapMaxpeakPlot(self, variant):
+
+        '''Bootstrap max-peak plot
+        '''
+
+        df = pd.read_excel(self.workingDir + '%s bootstrap_in-peak_genes_SD.xlsx' % variant, sheet_name='Bootstrap lists', index_col=None, header=0)
+        df_temp = pd.DataFrame(index=np.unique(df.stack().dropna().values), columns=df.columns).fillna(0.)
+        for col in df.columns:
+            df_temp.loc[df[col].dropna().values, col] = 1.
+
+        df_temp = df_temp.iloc[scipy.cluster.hierarchy.dendrogram(scipy.cluster.hierarchy.linkage(df_temp, 'ward'), no_plot=True, get_leaves=True)['leaves']]
+        df_temp = df_temp.T.iloc[scipy.cluster.hierarchy.dendrogram(scipy.cluster.hierarchy.linkage(df_temp.T, 'ward'), no_plot=True, get_leaves=True)['leaves']].T
+
+        df_temp = df_temp.loc[df_temp.sum(axis=1) > (0.1 * df_temp.shape[1])]
+
+        fig = plt.figure(figsize=(12, 10))
+
+        ax = fig.add_axes([0.25, 0.2, 0.65, 0.7])
+        cmap = matplotlib.colors.LinearSegmentedColormap.from_list('WB', [(1, 1, 1), (0, 0, 0.5)], N=2)
+        im = ax.imshow(df_temp.values, cmap=cmap, interpolation='None', aspect='auto')
+
+        ax.set_xticks(range(df_temp.shape[1]))
+        ax.set_xticklabels(df_temp.columns, rotation=90, fontsize=5)
+        ax.set_xlim([-0.5, df_temp.shape[1] - 0.5])
+
+        ax.set_yticks(range(df_temp.shape[0]))
+        ax.set_yticklabels(df_temp.index, rotation=0, fontsize=5)
+        ax.set_ylim([-0.5, df_temp.shape[0] - 0.5])
+
+        if True:
+            axColor = fig.add_axes([0.825, 0.8, 0.1, 0.1], frame_on=False)
+            axColor.set_xticks([])
+            axColor.set_xticklabels([])
+            axColor.set_yticks([])
+            axColor.set_yticklabels([])
+            clb = fig.colorbar(im, ax=axColor)
+            clb.set_ticks([0.25, 0.75])
+            clb.set_ticklabels(['No', 'Yes'])
+            clb.ax.tick_params(labelsize=6)
+
+        fig.savefig(self.workingDir + '%s bootstrap.png' % variant, dpi=600)
+
+        return
+
+    def generateAnalysisReport(self):
+
+        '''Generate analysis report.
+        '''
+
+        return 
+
+def process(df1main, df1other, df2main, df2other, dir1, dir2, genesOfInterest = None, knownRegulators = None, nCPUs = 4, 
+            panels = ['combo3avgs', 'combo4avgs', 'fraction', 'binomial', 'markers', 'top50'], parallelBootstrap = False,
+            exprCutoff1 = 0.05, exprCutoff2 = 0.05, perEachOtherCase = True, **kwargs):
+
+    '''Main workflow programmed in two scenaria depending on parameter "perEachOtherCase".
+
+    Parameters:
+        df1main: pandas.DataFrame
+            Expression data of main group of cells of the first species
+
+        df1other: pandas.DataFrame
+            Expression data of other cells of the first species
+
+        df2main: pandas.DataFrame
+            Expression data of main group of cells of the second species
+
+        df2other: pandas.DataFrame
+            Expression data of other cells of the second species
+
+        dir1: str
+            Path to the first species working directory
+
+        dir2: str
+            Path to the second species working directory
+
+        genesOfInterest: list, Default None
+            Particular genes to analyze, e.g. receptors
+
+        knownRegulators: list, Default None
+            Known marker genes 
+
+        nCPUs: int, Default 1
+            Number of CPUs to use for multiprocessing, recommended 10-20
+
+        panels: list, Default None
+            Particular measurements to include in the analysis
+
+        parallelBootstrap: boolean, Default False
+            Whether to generate bootstrap experiments in parallel mode
+
+        exprCutoff1: float, Default 0.05
+            Per-batch expression cutoff for the first dataset
+
+        exprCutoff2: float, Default 0.05
+            Per-batch expression cutoff for the second dataset
+
+        perEachOtherCase:  boolean, Default True
+            Scenario of comparison
+
+        Any other parameters that class "Analysis" can take
+
+    Returns:
+        Analysis
+            First class Analysis instance
+
+        Analysis
+            Second class Analysis instance
+    '''
+
+    if genesOfInterest is None:
+        genesOfInterest = receptorsListHugo_2555
+    
+    if knownRegulators is None:
+        knownRegulators = gEC23
+
+    an1 = Analysis(workingDir=dir1, otherCaseDir=dir2, genesOfInterest=genesOfInterest,
+                        knownRegulators=knownRegulators, panels=panels, nCPUs=nCPUs, **kwargs)
+
+    if perEachOtherCase:
+        an2 = Analysis(workingDir=dir2, otherCaseDir=dir1, genesOfInterest=genesOfInterest,
+                            knownRegulators=knownRegulators, panels=panels, nCPUs=nCPUs, **kwargs)
+
+    if not df1main is None:
+        an1.prepareDEG(df1main, df1other)
+
+    an1.preparePerBatchCase(exprCutoff=exprCutoff1)
+    an1.prepareBootstrapExperiments(parallel=parallelBootstrap)
+
+    if perEachOtherCase:
+        if not df2main is None:
+            an2.prepareDEG(df2main, df2other)
+
+        an2.preparePerBatchCase(exprCutoff=exprCutoff2)
+        an2.prepareBootstrapExperiments(parallel=parallelBootstrap)
+
+    an1.analyzeBootstrapExperiments()
+
+    if perEachOtherCase:
+        an2.analyzeBootstrapExperiments()
+        an1.analyzeBootstrapExperiments()
+            
+    an1.reanalyzeMain()
+    an1.analyzeCombinationVariant('Avg combo3avgs')
+    an1.analyzeCombinationVariant('Avg combo4avgs')
+    an1.bootstrapMaxpeakPlot('Avg combo3avgs')
+    an1.bootstrapMaxpeakPlot('Avg combo4avgs')
+    an1.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=15, nE=15, fcutoff=0.5, width=50)
+    an1.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=15, nE=15, fcutoff=0.5, width=50)
+    an1.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=20)
+    an1.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=20)
+
+    if perEachOtherCase:
+        an2.reanalyzeMain()
+        an2.analyzeCombinationVariant('Avg combo3avgs')
+        an2.analyzeCombinationVariant('Avg combo4avgs')
+        an2.bootstrapMaxpeakPlot('Avg combo3avgs')
+        an2.bootstrapMaxpeakPlot('Avg combo4avgs')
+        an2.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=15, nE=15, fcutoff=0.5, width=50)
+        an2.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=15, nE=15, fcutoff=0.5, width=50)
+        an2.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=10)
+        an2.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=20)
+
+    an1.generateAnalysisReport()
+
+    if perEachOtherCase:
+        an2.generateAnalysisReport()
+
+    if perEachOtherCase:
+        return an1, an2
+
+    return an1

@@ -1,9 +1,7 @@
 from decneo.commonFunctions import *
-from decneo.analysisPipeline import Analysis
+from decneo.analysisPipeline import Analysis, process
 
-def preparePerSampleDEgenes():
-
-    wdir = '' if platform.system()=="Windows" else '/mnt/research/piermarolab/Sergii/PanglaoDB_byAlona/'
+def preparePerSampleDEgenes(wdir):
 
     allCellsIndexAnnotation = wdir + 'AlonaCellsInPanglaoDB.h5'
     ECIndexAnnotation = wdir + 'AlonaECinPanglaoDB.h5'
@@ -16,8 +14,6 @@ def preparePerSampleDEgenes():
 
     # Prepare index of all cells
     if False:
-        from .PanglaoDBannotation import getPanglaoDBAnnotationsSummaryDf
-
         df_cell_type_annotations = getPanglaoDBAnnotationsSummaryDf(MetadataDirName)[['Cell type annotation', 'Species']]
         df_cell_type_annotations = df_cell_type_annotations.set_index(['Cell type annotation', 'Species'], append=True)
         df_cell_type_annotations.index.names = ['SRA', 'SRS', 'cluster', 'celltype', 'species']
@@ -158,68 +154,35 @@ def preparePerSampleDEgenes():
 
     return
 
-def prepareInput(fileName, species):
+def prepareInput(wdir, fileName, species):
 
-    wdir = '' if platform.system()=="Windows" else '/mnt/research/piermarolab/Sergii/PanglaoDB_byAlona/'
-    
     df_ranks = pd.read_hdf(wdir + 'PanglaoDB_Alona_ttest_ranks_per_batch.h5', key=species)
-    df_ranks.to_hdf(fileName, key='df_ranks', mode='a', complevel=4, complib='zlib')
+    df_ranks.to_hdf(wdir + fileName, key='df_ranks', mode='a', complevel=4, complib='zlib')
     print(df_ranks)
 
-    df = pd.concat([pd.read_hdf(wdir + 'PanglaoDB_Alona_EC.h5', key=batch) for batch in df_ranks.columns[:]], axis=1, sort=False).fillna(0.)
-    df.to_hdf(fileName, key='df', mode='a', complevel=4, complib='zlib')
+    df = pd.concat([pd.read_hdf(wdir + 'PanglaoDB_Alona_EC.h5', key=batch) for batch in df_ranks.columns], axis=1, sort=False).fillna(0.)
+    df.to_hdf(wdir + fileName, key='df', mode='a', complevel=4, complib='zlib')
     print(df)
 
     return
 
 if __name__ == '__main__':
 
-    #preparePerSampleDEgenes()
-
-    args = dict(genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC23, nCPUs=4 if platform.system()=="Windows" else 20, 
-                panels=['combo3avgs', 'combo4avgs', 'fraction', 'binomial', 'markers', 'top50'], nBootstrap=100, perEachOtherCase=True, PCNpath=os.path.join(os.path.dirname(__file__), 'data'))
-
     if platform.system()=="Windows":
-        dirHuman = 'd:/Projects/A_Endothelial/VS/Endothelial/results/Alona_all/PanglaoDB_byDCS_human/'
-        dirMouse = 'd:/Projects/A_Endothelial/VS/Endothelial/results/Alona_all/PanglaoDB_byDCS_mouse/'
+        wdir = 'd:/Projects/A_Endothelial/VS/Endothelial/results/PanglaoDB_byAlona/' 
     else:
-        dirHuman = '/mnt/research/piermarolab/Sergii/PanglaoDB_byAlona/PanglaoDB_byDCS_human/'
-        dirMouse = '/mnt/research/piermarolab/Sergii/PanglaoDB_byAlona/PanglaoDB_byDCS_mouse/'
+        wdir = '/mnt/research/piermarolab/Sergii/PanglaoDB_byAlona/'
+    
+    if False:
+        preparePerSampleDEgenes()
+        prepareInput(wdir, 'PanglaoDB_byDCS_human/data.h5', 'Homo sapiens')
+        prepareInput(wdir, 'PanglaoDB_byDCS_mouse/data.h5', 'Mus musculus')
 
-    anHuman = Analysis(**dict(args, workingDir=dirHuman, otherCaseDir=dirMouse))
-    anMouse = Analysis(**dict(args, workingDir=dirMouse, otherCaseDir=dirHuman))
+    anHuman, anMouse = process(*(None, None), *(None, None),
+                                wdir + 'PanglaoDB_byDCS_human/', wdir + 'PanglaoDB_byDCS_mouse', 
+                                nCPUs=4 if platform.system()=="Windows" else 20, parallelBootstrap=False,
+                                PCNpath=os.path.join(os.path.dirname(__file__), 'data'), exprCutoff1=0.01, 
+                                genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC23, perEachOtherCase=True)
 
-    #prepareInput(anHuman.dataSaveName, 'Homo sapiens')
-    #prepareInput(anMouse.dataSaveName, 'Mus musculus')
-
-    #pd.read_hdf(anHuman.dataSaveName, key='df').loc['KDR'].to_hdf(os.path.dirname(dirHuman[:-1]) + 'KDR.h5', key='Homo sapiens')
-    #pd.read_hdf(anMouse.dataSaveName, key='df').loc['KDR'].to_hdf(os.path.dirname(dirHuman[:-1]) + 'KDR.h5', key='Mus musculus')
-
-    #anHuman.preparePerBatchCase(exprCutoff=0.05)
-    #anHuman.prepareBootstrapExperiments()
-    #anHuman.analyzeBootstrapExperiments()
-
-    #anMouse.preparePerBatchCase(exprCutoff=0.05)
-    #anMouse.prepareBootstrapExperiments(allDataToo=False)
-    #anMouse.analyzeBootstrapExperiments()
-
-    #anHuman.analyzeBootstrapExperiments()
-
-    #anHuman.reanalyzeMain()
-    #anHuman.analyzeCombinationVariant('Avg combo3avgs')
-    #anHuman.analyzeCombinationVariant('Avg combo4avgs')
-    #anHuman.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=8, nE=30, fcutoff=0.5, width=50)
-    #anHuman.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=8, nE=30, fcutoff=0.5, width=50)
-    #anHuman.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=20)  
-    #anHuman.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=20)  
-
-    #anMouse.reanalyzeMain()
-    #anMouse.analyzeCombinationVariant('Avg combo3avgs')
-    #anMouse.analyzeCombinationVariant('Avg combo4avgs')
-    #anMouse.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=8, nE=30, fcutoff=0.5, width=50)
-    #anMouse.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=8, nE=30, fcutoff=0.5, width=50)
-    #anMouse.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=20)  
-    #anMouse.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=20)  
-
-    anHuman.reanalyzeMain(togglePublicationFigure=True, toggleIncludeHeatmap = False, markersLabelsRepelForce = 1.25)
-    anMouse.reanalyzeMain(togglePublicationFigure=True, toggleIncludeHeatmap = False, markersLabelsRepelForce = 1.5)
+    anHuman.reanalyzeMain(togglePublicationFigure=True, toggleIncludeHeatmap=False, markersLabelsRepelForce=1.25)
+    anMouse.reanalyzeMain(togglePublicationFigure=True, toggleIncludeHeatmap=False, markersLabelsRepelForce=1.5)
