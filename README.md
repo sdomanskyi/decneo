@@ -74,9 +74,9 @@ The main class, Analysis, includes tools for:
 
   1. **Pre-preprocessing**
   2. **Preparing bootstrap cases**
-  3. **Calculate distance metric**
-  4. **Generate dendrogram, heatmap, and panels for each case**
-  4. **Analyze combinations of measurements**
+  3. **Calculating distance metric**
+  4. **Generating dendrogram, heatmap, and panels for each case**
+  4. **Analyzing combinations of measurements**
   5. **Identify peaks**
   6. **Recording peak genes**
 
