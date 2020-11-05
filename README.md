@@ -27,11 +27,11 @@ The software runs in Python >= 3.8
 
 DECNEO is dependent on the following packages, so install or update: 
 - [x] Matlibplot - for plotting results
-- [x] NetworkX - for 
+- [x] NetworkX - TEXT
 - [x] Pandas and NumPy and hdf5 - for processing data
-- [x] rpy2 - for 
-- [x] sklearn - for clustering 
-- [x] tables - for clustering 
+- [x] rpy2 - TEXT
+- [x] sklearn - TEXT
+- [x] tables - TEXT
 
 ### Installation
 
@@ -59,9 +59,9 @@ Run the  ```process``` function. Here, for simplicity, we input our data and dir
 
 ```python
 process(pd.read_hdf(data, key='dfa'),
-            pd.read_hdf(data, key='dfb'),
-            None, None,                       
-            'dir1/', 'dir2/')
+        pd.read_hdf(data, key='dfb'),
+        None, None,                       
+        'dir1/', 'dir2/')
 ```
 
 During the initialization a number of parameters can be specified. For detailed list see documentation.
@@ -77,7 +77,7 @@ The main class, Analysis, includes tools for:
   3. **Calculating distance metric**
   4. **Generating dendrogram, heatmap, and panels for each case**
   4. **Analyzing combinations of measurements**
-  5. **Identify peaks**
+  5. **Identifying peaks**
   6. **Recording peak genes**
 
 ### Input Data Format 
