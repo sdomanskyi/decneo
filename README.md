@@ -1,7 +1,8 @@
-![logo](https://github.com/sdomanskyi/decneo/blob/master/docs/source/DECNEO.svg)
-
 # DECNEO
+
 This repository contains DECNEO, a Python package that provides bioinformatics utilities for analyzing single cell transcriptomics datasets. DECNEO implements in silico detection of transcriptional regulation genes. The documentation is available at Read the Docs: https://decneo.readthedocs.io/
+
+![logo](https://github.com/sdomanskyi/decneo/blob/master/docs/source/DECNEO.svg)
 
 - [Getting Started](#getting-started)
   * [Dependencies](#dependencies)
