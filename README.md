@@ -1,6 +1,6 @@
 ![logo](https://github.com/sdomanskyi/decneo/blob/master/docs/source/DECNEO.svg)
 
-#DECNEO
+# DECNEO
 This repository contains DECNEO, a Python package that provides bioinformatics utilities for analyzing single cell transcriptomics datasets. DECNEO implements in silico detection of transcriptional regulation genes. The documentation is available at Read the Docs: https://decneo.readthedocs.io/
 
 - [Getting Started](#getting-started)
@@ -131,35 +131,10 @@ FILL IN
 
 DECNEO is released under an MIT License. Please also consult the folder LICENSES distributed with DECNEO regarding Licensing information for use of external associated content.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-About
------
-
-In silico detection of transcriptional regulation genes from single cell transcriptomics
-
-
 For development and use:
 ------------------------
 
 > Note: this is not intended for public use yet. Publication is being prepared.
-
-
-To install DECNEO as a package:
-
-	$ python setup.py install
-
 
 For development and testing of the documentation locally (on the development machine) install Sphinx by:
 
