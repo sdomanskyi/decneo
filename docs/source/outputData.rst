@@ -42,7 +42,7 @@ It will also output an analysis report detailing all results and figures.
 
    .. tab:: byBatches/
 
-      TEXT
+      Gene expression distance is calculated for each batch, and results are not grouped, and are further used in bootstrap analysis.
 
       .. list-table:: 
         :header-rows: 1
