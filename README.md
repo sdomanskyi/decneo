@@ -12,7 +12,7 @@ This repository contains DECNEO, a Python package that provides bioinformatics u
 - [Functionality](#functionality)
   * [Overview](#overview)
   * [Input Data Format](#input-data-format)
-  * [Usage Example](#usage-examply)
+  * [Usage Example](#usage-example)
   * [Output](#output)
 - [Funding](#funding)
 - [Licensing](#licensing)
