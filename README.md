@@ -1,5 +1,7 @@
 # DECNEO
 
+> :warning: Warning: this software is not intended for public use yet. Publication is being prepared.
+
 This repository contains DECNEO, a Python package that provides bioinformatics utilities for analyzing single cell transcriptomics datasets. DECNEO implements in silico detection of transcriptional regulation genes. The documentation is available at Read the Docs: https://decneo.readthedocs.io/
 
 ![logo](https://github.com/sdomanskyi/decneo/blob/master/docs/source/DECNEO.svg)
@@ -25,21 +27,21 @@ These instructions will get you a copy of the project up and running on your mac
 
 The software runs in Python >= 3.8
 
-DECNEO is dependent on the following packages, so install or update: 
-- [x] Matlibplot - for plotting results
-- [x] NetworkX - TEXT
-- [x] Pandas and NumPy and hdf5 - for processing data
-- [x] rpy2 - TEXT
-- [x] sklearn - TEXT
-- [x] tables - TEXT
+DECNEO is dependent on the following packages, that are installed/updated with installation of DECNEO: 
+- [x] Matplotlib - plotting from Python
+- [x] NetworkX - used in network enrichment analysis
+- [x] Pandas and tables - for data storage and analysis
+- [x] NumPy - for processing data
+- [x] sklearn - we use clustering algorithms and metrics
+- [x] adjustText - optimization of text labels locations in plots
 
 ### Installation
 
 To install DECNEO as a package:
 
-	$ python setup.py install
+	$ pip install decneo
 
-Alternatively, you can create a local copy of this project for development purposes, and 
+Alternatively, you can clone a local copy of this project, and 
 install the package from the cloned directory:
 
 	git clone https://github.com/sdomanskyi/decneo
@@ -47,24 +49,8 @@ install the package from the cloned directory:
 
 #### Troubleshooting 
 
-NEEDS TO BE FILLED IN
-
-### Deployment 
-
-In your script import the package's main function ```process``` from the analysis pipeline:
-
-	from decneo.analysisPipeline import process
-
-Run the  ```process``` function. Here, for simplicity, we input our data and directories and use default values for the remaining parameters:
-
-```python
-process(pd.read_hdf(data, key='dfa'),
-        pd.read_hdf(data, key='dfb'),
-        None, None,                       
-        'dir1/', 'dir2/')
-```
-
-During the initialization a number of parameters can be specified. For detailed list see documentation.
+If reading demo data gives error "unsupported pickle protocol: 5" make sure that python 3.8 is used and 
+latest version of pandas and tables is installed.
 
 ## Functionality 
 
@@ -126,23 +112,8 @@ For a detailed list, refer to the documentation.
 
 ## Funding 
 
-FILL IN
+This research project is a part of R01GM122085 grant, funded by NIH/NIGMS.
 
 ## Licensing 
 
 DECNEO is released under an MIT License. Please also consult the folder LICENSES distributed with DECNEO regarding Licensing information for use of external associated content.
-
-For development and use:
-------------------------
-
-> Note: this is not intended for public use yet. Publication is being prepared.
-
-For development and testing of the documentation locally (on the development machine) install Sphinx by:
-
-	$ pip install -U sphinx
-
-To compile html version of the documentation:
-
-	$ sphinx-build -E -a -b html ./docs/source ./docs/build
-
-We are utilizing a 3rd party Sphinx extension sphinxcontrib-images extension, allowing to display documentation images in a organized way.
