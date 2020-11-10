@@ -74,7 +74,7 @@ For examples refer to documentation.
 
 ### Usage Example 
 
-We have made an example execution file ```demo.py``` that shows how to use ```decneo``.
+We have made an example execution file ```demo.py``` that shows how to use ``decneo``.
 
 Download file ``VoightChoroid4567RemappedData.h5`` (456.7 Mb) 
 from https://figshare.com/DECNEO/
