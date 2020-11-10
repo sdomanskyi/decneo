@@ -1,6 +1,6 @@
 # Supplementary and Usage Example Scripts
 
-This folder contains scripts that show how to use DECNEO. 
+This directory contains scripts that show how to use DECNEO. 
 
 ## Supplement 
 
@@ -34,7 +34,7 @@ Take a closer look at ``demo.py`` to see how DECNEO can be run.
 
 ### Other Examples 
 
-The folder also contains many other example scripts where we run DECNEO on different cell types of the Panglao DB. 
+The directory also contains many other example scripts where we run DECNEO on different cell types of the Panglao DB. 
 There are also available examples showing how to analyze only specified SRAs. 
 
 
