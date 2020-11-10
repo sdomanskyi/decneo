@@ -7,10 +7,8 @@ This repository contains DECNEO, a Python package that provides bioinformatics u
 ![logo](https://github.com/sdomanskyi/decneo/blob/master/docs/source/DECNEO.svg)
 
 - [Getting Started](#getting-started)
-  * [Dependencies](#dependencies)
   * [Installation](#installation)
-    + [Troubleshooting](#troubleshooting)
-  * [Deployment](#deployment)
+  * [Dependencies](#dependencies)
 - [Functionality](#functionality)
   * [Overview](#overview)
   * [Input Data Format](#input-data-format)
@@ -21,11 +19,24 @@ This repository contains DECNEO, a Python package that provides bioinformatics u
 
 ## Getting Started
 
-These instructions will get you a copy of the project up and running on your machine for data analysis, development or testing purposes.
+These are the instructions on how to get a copy of this project up 
+and use it for data analysis.
 
-### Dependencies 
+### Installation
 
 The software runs in Python >= 3.8
+
+To install DECNEO as a package:
+
+	$ pip install decneo
+
+Alternatively, clone a local copy of this project to 
+install the package from the cloned directory:
+
+	git clone https://github.com/sdomanskyi/decneo
+	python setup.py install
+
+### Dependencies 
 
 DECNEO is dependent on the following packages, that are installed/updated with installation of DECNEO: 
 - [x] Matplotlib - plotting from Python
@@ -35,36 +46,16 @@ DECNEO is dependent on the following packages, that are installed/updated with i
 - [x] sklearn - we use clustering algorithms and metrics
 - [x] adjustText - optimization of text labels locations in plots
 
-### Installation
-
-To install DECNEO as a package:
-
-	$ pip install decneo
-
-Alternatively, you can clone a local copy of this project, and 
-install the package from the cloned directory:
-
-	git clone https://github.com/sdomanskyi/decneo
-	python setup.py install
-
-#### Troubleshooting 
-
-If reading demo data gives error "unsupported pickle protocol: 5" make sure that python 3.8 is used and 
-latest version of pandas and tables is installed.
-
 ## Functionality 
 
 ### Overview
 
-The main class, Analysis, includes tools for:
-
-  1. **Pre-preprocessing**
-  2. **Preparing bootstrap cases**
-  3. **Calculating distance metric**
-  4. **Generating dendrogram, heatmap, and panels for each case**
-  4. **Analyzing combinations of measurements**
-  5. **Identifying peaks**
-  6. **Recording peak genes**
+The main implementation of DECNEO includes workflow for fast and efficient calculation of 
+single cell gene expression distance (e.g. correlation) followed by the bootstrap technique
+to account for variation and noise in the input data. The results are summarized in
+a form of a optimized dendrogram, heatmap and information panels. Analysis of combination
+of measurements panels allows to identify main and secondary groups of genes that are coexpressed
+in the cell type of interest. 
 
 ### Input Data Format 
 
@@ -102,6 +93,9 @@ See details of the script ```demo.py``` at:
 To execute the complete script ```demo.py``` run:
 
 	python demo.py
+
+If reading demo data gives error "unsupported pickle protocol: 5" make sure that python 3.8 is used and 
+latest version of pandas and tables is installed.
 
 ### Output 
 
