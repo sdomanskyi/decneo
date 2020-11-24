@@ -25,65 +25,42 @@ pcn = nx.read_edgelist("../data/PCN.txt")
 """
 Get Conservation, network enrichment and percent expression merged metrics 
 for bootstrapped data.
-
 If compare_dendro not given gets all metrics but conservation
 but calculates dendrogram. 
-
 If diff_expr != None data is assumed to be a dictionary of pre-computed correlation
 where the keys are the sample names and the values are correltion data frames.
-
 if need_bootstrap == False then diff_expr and data are already dictionaries
 of bootstrapped data of differential expression.
-
 Parameters:
-
 data: Count file to find correlation and differential expression if diff_expr = None. 
       Dictionary of correlation data frames if diff_expr != None that are either
       bootstraps or samples to be bootstrapped if need_bootstrap = True.
       
 save_dir: Directory to save output files to.
-
 cell_list: List of endothelial cells if data is count file.
-
 n_samps: Number of pseudo samples to generate if data is count data.
-
 norm: Whether count data needs log scale normalization.
-
 genes1: Genes to use in correlation, all other genes will be left out.
-
 genes2: Target genes (receptors) to use in dendrogram and for final merged metric.
-
 seed: Random seed to use.
-
 itr: Number of bootstraps to genrate if data is not already bootstrapped.
-
 compare_dendro: Dendrogram data frame where index is genes "Dendrogram" column is the 
                 dendrogram position. If None analysis will stop after generating network
                 enrichment, percent expression and the dendrogram for the current data.
                 
 markers: Genes of interest to label in plots in downstream analysis.
-
 fraction: Minimum fraction of genes to be used in correlation.
-
 diff_expr: Dictionary of precomputed differential expression data frames. Columns must include 'avg_logFC'
            to differentiate upregulated from downregulated genes. 'PCT.1' for using percent exprssion of 
            the genes as a metric in merge metric. 'Q-Val' (adjusted P-Value) for prioritizing genes for the network.
            
 need_bootstrap: Whether or not the data needs bootstrapping or if its a dictionary of bootrstapped data frames.
-
-
 Output:
-
 gene_stats.pz: Pickle file of statistics for each bootstrap.
-
 Corr_BS: Folder of correlation for each sample/pseudo sample.
-
 Diff_BS: Folder of differential expression statistics for each sample/pseudo sample.
-
 BS_Corr_Dict.pzz: Dictionary of the correlation matrix of all the bootstrapped samples.
-
 Pseudo_Sample_Cells.csv: List of which endothelial cells are in each pseudo sample.
-
 Peak_Count: Count of how many times each gene appears in the peak.
 """
 
@@ -295,52 +272,32 @@ def pseudo_peak_process(data,
 """
 Get Conservation, network enrichment and percent expression merged metrics 
 for the whole data set.
-
 If compare_dendro not given gets all metrics but conservation
 but calculates dendrogram. 
-
 If diff_expr != None data is assumed to be a dictionary of pre-computed correlation
 where the keys are the sample names and the values are correltion data frames.
-
 if need_bootstrap == False then diff_expr and data are already dictionaries
-
 Parameters:
-
       data: Count file to find correlation and differential expression if diff_expr = None. 
             Dictionary of correlation data frames if diff_expr != None that are either
             bootstraps or samples to be bootstrapped if need_bootstrap = True.
-
       save_dir: Directory to save output files to.
-
       cell_list: List of endothelial cells if data is count file.
-
       n_samps: Number of pseudo samples to generate if data is count data.
-
       norm: Whether count data needs log scale normalization.
-
       genes1: Genes to use in correlation, all other genes will be left out.
-
       genes2: Target genes (receptors) to use in dendrogram and for final merged metric.
-
       seed: Random seed to use.
-
       itr: Number of bootstraps to genrate if data is not already bootstrapped.
-
       compare_dendro: Dendrogram data frame where index is genes "Dendrogram" column is the 
                       dendrogram position. If None analysis will stop after generating network
                       enrichment, percent expression and the dendrogram for the current data.
-
       markers: Genes of interest to label in plots in downstream analysis.
-
       fraction: Minimum fraction of genes to be used in correlation.
-
       diff_expr: Dictionary of precomputed differential expression data frames. Columns must include 'avg_logFC'
                  to differentiate upregulated from downregulated genes. 'PCT.1' for using percent exprssion of 
                  the genes as a metric in merge metric. 'Q-Val' (adjusted P-Value) for prioritizing genes for the network.
-
-
 Output:
-
 gene_stats_Full: List of all statistics generated for each gene.
 """
 
@@ -379,7 +336,7 @@ def full_data_process(data_file,
         other_cells = set(data.columns) - set(cols)
         print("Computing Correlaiton For Full")
         curr_time = time.time()
-        corr_df = ca.get_corr(data[cell_list],genes1,genes2, log_scale = norm)#,fraction=fraction)
+        corr_df = ca.get_corr(data[cell_list],genes1,genes2, log_scale = norm, fraction=fraction)
         
         print("Finished Correlation for Full: %f"%(time.time()-curr_time))
 
@@ -466,19 +423,47 @@ def full_data_process(data_file,
     gene_stats_df.to_csv(os.path.join(save_dir,"gene_stats_Full.csv"))
     
     return  gene_stats_df
-            
+  
+def pre_process_batch(df_dict,
+                      cell_dict,
+                      genes1 = None,
+                      genes2=None,
+                      fraciont = .05,
+                      norm = True):
+    count = 0
+    diff_dict = {}
+    corr_dict = {}
+    for k in df_dict:
+        if count%10 == 9:
+            print("%i/%i"%(count+1,len(df_dict)))
+        count+=1
+        
+        data = df_dict[k]
+        cell_list = cell_dict[k]
+        other_cells = set(data.columns)-set(cell_list)
+        
+        curr_time = time.time()
+        corr_df = ca.get_corr(data[cell_list],genes1,genes2, log_scale = norm, fraction=fraction)
+        
+        
+        curr_time = time.time()
+        gene_stats_df = ca.get_diff(data[cell_list], data[other_cells],log_scale = norm)
+        
+        df_dict[k] = gene_stats_df
+        corr_dict[k] = corr_df
+        
+        
+    return df_dict,corr_dict
+        
+        
+
+    
 """
 Finds genes located in a peak based on the first column of a data frame.
-
-
 Parameters:
-
       df: Data frame to get peak from.
-
 Output:
-
       Index of peak genes.
-
 """
 def get_peak (df, thresh = .5):
     
@@ -503,9 +488,7 @@ def get_peak (df, thresh = .5):
 
 """
 Splits columns into random equally sized lists.
-
 Pameteres:
-
       col_list: List of columns to split.
       
       n_parts: Number of parts to split columns into
@@ -515,7 +498,6 @@ Pameteres:
       seed: Random seed to set.
       
 output:
-
       cross_valid_columns: List of all the partitions
 """
 def get_cross_valid_cols(col_list,n_parts=10,itr = 1, seed = 1):
@@ -530,9 +512,7 @@ def get_cross_valid_cols(col_list,n_parts=10,itr = 1, seed = 1):
  
 """
 Get bootstrap of columns list.
-
 Parameter:
-
       col_list: Columns list to sample from.
       
       n:  Number of elements to select in each bootstrap. Default is length of col_list.
@@ -540,7 +520,6 @@ Parameter:
       itr: Number of bootstraps to perform.
       
       seed: Random seed to set
-
 output:
       cross_valid_columns: List of bootstrapped Columns.
 """
@@ -557,9 +536,7 @@ def get_bootstrap(col_list,n=None,itr = 100, seed = 1):
 
 """
 Compute data frame for each correlation data frame in med_corr_dict and return as a dictionary of dendrogram data frames.
-
 Parameters:
-
       med_corr_dict: Dictionary of correlation data frames to compute dendrograms for.
       
       curr_goi: Genes to label in dendrogram plots produced.
@@ -593,7 +570,6 @@ def get_dendro_dict(med_corr_dict, curr_goi, BS = False):
 """
 Get dendrogram distance for each dendrogram dataframe in the dictionary and return as a dictionary of 
 distance dataframes.
-
 Parameteres:
       
       dendro_dict: Dictionary of dendrograms to compute distances from.
@@ -601,7 +577,6 @@ Parameteres:
       BS: Whether the dictionary is a dictionary of bootstrapped data or not.
       
 Output:
-
       dendro_dist_dict: Dictionary of dendrogram distances.
 """
 def get_dendro_dist_dict(dendro_dict, BS = False): 
@@ -642,17 +617,13 @@ def get_dendro_dist_dict(dendro_dict, BS = False):
 
 """
 Get the conservation for each gene based on dendrogram distance.
-
 Parameters:
-
       dd_df1: Dendrogram distance dataframe of interest.
       
       dd_df2: Dendrogram distance dataframe to compare it too.
       
       n: Number of closest genes to look at to determine conservation.
-
 Output:
-
       df: Dataframe of conservation values.      
 """
 def get_conservation(dd_df1, dd_df2,n =50):
@@ -669,7 +640,6 @@ def get_conservation(dd_df1, dd_df2,n =50):
     
 """
 Combine metrics by adding they're sum normalized values together into one.
-
 parameteres:
       
       genes: Genes to use when merging metrics.
@@ -692,13 +662,10 @@ def merge_metrics (genes,metric_list):
  
 """
 Normalizes the columns so minimum is 0 and maximum is one.
-
 Parameters:
-
       df: Data frame to normalize.
       
 output:
-
       df: Normalized df.
 """
 def norm_max(df):
@@ -707,9 +674,7 @@ def norm_max(df):
       
 """
 Smooths data using a sliding window.
-
 Parameters:
-
       gene_order: Order of genes in dendrogram to slide over.
       
       data: Data frame of data to average.
@@ -722,7 +687,6 @@ Parameters:
       
       
 Output:
-
       window_val: Values after window normalization.
 """
 def sliding_window(gene_order, 
@@ -766,9 +730,7 @@ def sliding_window(gene_order,
 
 """
 Plot dendrogram and heatmap using data generated by full_data_process.
-
 Parameters:
-
       data_dir: Directory where data is located.
       
       df_dir: Location tos save intermediate dataframe.
@@ -800,7 +762,6 @@ def plot_dedndro(data_dir,df_dir,plt_dir,title,markersBS_num =0, mark_loc = 0):
 
 """
 Compute sliding window for different metrics.
-
 Parameters:
       
       gene_stats_df: Dataframe with various gene stats to use.
@@ -810,7 +771,6 @@ Parameters:
       coi_dict: Dictionary of columns to suse.
       
 output:
-
       gene_stats_df: Data frame of gene stats with the merged metrics added.
 """
 def get_window (gene_stats_df, 
@@ -834,9 +794,7 @@ def get_window (gene_stats_df,
 """
 Get the merged statistics and adds it to each data frame in gene_stats_dict and returns the peak
 count for each gene.
-
 Parameters:
-
       gene_stats_dict: Dictionary of dataframes of gene statistics to use use for peak count.
       
       ws: Window size to use for sliding window smoothing.
@@ -930,5 +888,4 @@ def read_sra (sra_dir,sra, endo_cell_df):
     return all_count, endo_cell_list
     
     
-    
-    
+
