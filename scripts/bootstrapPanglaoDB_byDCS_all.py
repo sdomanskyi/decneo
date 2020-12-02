@@ -1,5 +1,5 @@
 from decneo.commonFunctions import *
-from decneo.analysisPipeline import Analysis
+from decneo.analysisPipeline import Analysis, process
 
 def preparePerSampleDEgenes():
 
