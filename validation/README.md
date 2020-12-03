@@ -43,7 +43,7 @@ To execute the validation analysis first create an execution file. In this is ex
 See details of the script ```example.py``` at:
 > [Example walkthrough of example.py script](https://github.com/sdomanskyi/decneo/blob/master/validation/example.py)
 
-## Output
+## Output Directories and Files
 
 Outputs resulting figure to the directory the function is run in and outputs all resulting directories and files to 
 directory specified as the ``saveDir`` when running the ``full_data_process`` function. 
