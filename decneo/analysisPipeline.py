@@ -679,9 +679,9 @@ class Analysis():
             For internal use only
         '''
 
-        workingDir, measures, df, N, maxDistance, halfWindowSize, j = args
+        workingDir, measures, df, N, maxDistance, halfWindowSize, j, getMax = args
 
-        np.random.seed(j)
+        np.random.seed()
 
         allGenes = df.index.values.copy()
 
@@ -697,11 +697,26 @@ class Analysis():
 
             listsNonmerged.append(getGenesOfPeak(pd.Series(index=allGenes, data=data), maxDistance=maxDistance))
 
-        pd.Series(listsNonmerged).to_pickle(workingDir + '%s' % j)
+        se = pd.Series(listsNonmerged)
+
+        if getMax:
+            dfs = se.apply(pd.Series).reset_index(drop=True).replace(np.nan, 'RemoveNaN')
+            df = pd.DataFrame(index=range(len(dfs)), columns=np.unique(dfs.values.flatten()), data=False, dtype=np.bool_)
+            try:
+                df = df.drop('RemoveNaN', axis=1)
+            except:
+                pass
+
+            df[:] = (df.columns.values==dfs.values[..., None]).any(axis=1)
+
+            return df.mean(axis=0).max()
+
+        else:
+            se.to_pickle(workingDir + '%s' % j)
 
         return
 
-    def scramble(self, measures, subDir = '', N = 10**4, M = 20):
+    def scramble(self, measures, subDir = '', case='All', N = 10**4, M = 20, getMax = False, maxSuff = ''):
 
         '''Run control analysis for the dendrogram order
         
@@ -727,7 +742,7 @@ class Analysis():
             an.scramble (measures)
         '''
 
-        df = pd.read_excel(os.path.join(self.bootstrapDir + 'All/dendrogram-heatmap-correlation-data.xlsx'), index_col=0, header=0, sheet_name='Cluster index')
+        df = pd.read_excel(os.path.join(self.bootstrapDir + '%s/dendrogram-heatmap-correlation-data.xlsx' % case), index_col=0, header=0, sheet_name='Cluster index')
 
         workingDir = self.workingDir + 'random/'
         if subDir != '':
@@ -740,9 +755,14 @@ class Analysis():
         if True:
             print('\nCalculating chunks', flush=True)
             pool = multiprocessing.Pool(processes=self.nCPUs)
-            pool.map(self._forScramble, [(workingDir, measures, df.copy(), N, 25, 10, j) for j in range(M)])
+            result = pool.map(self._forScramble, [(workingDir, measures, df.copy(), N, 25, 10, j, getMax) for j in range(M)])
             pool.close()
             pool.join()
+
+            if getMax:
+                pd.Series(result).to_hdf(workingDir + 'max%s%s.h5' % (N, maxSuff), key='df', mode='a', complevel=4, complib='zlib')
+
+                return
 
             print('\nCombining chunks', flush=True)
             dfs = []
@@ -796,7 +816,7 @@ class Analysis():
             plt.savefig(workingDir + 'se_percentile_variation_%s.png' % q, dpi=300)
             plt.clf()
 
-        os.remove(workingDir + 'combined_%s_aligned.h5' % M)
+        #os.remove(workingDir + 'combined_%s_aligned.h5' % M)
 
         return
 
@@ -1684,7 +1704,7 @@ class Analysis():
         try:
             print('Re-analyzing %s-data case' % case, flush=True)
             
-            self.analyzeCase(None, toggleAdjustText=True, dpi=300, suffix=case, saveDir=os.path.join(self.bootstrapDir, '%s/' % case), printStages=True, toggleCalculateMajorMetric=False, toggleExportFigureData=True, toggleCalculateMeasures=False, externalPanelsData=dict(externalPanelsData, conservedGenes=pd.read_excel(os.path.join(self.bootstrapDir, case, 'comparison.xlsx'), index_col=1, header=0)['Inter-measures.T50_common_count']), **kwargs)
+            self.analyzeCase(None, toggleAdjustText=True, dpi=600, suffix=case, saveDir=os.path.join(self.bootstrapDir, '%s/' % case), printStages=True, toggleCalculateMajorMetric=False, toggleExportFigureData=True, toggleCalculateMeasures=False, externalPanelsData=dict(externalPanelsData, conservedGenes=pd.read_excel(os.path.join(self.bootstrapDir, case, 'comparison.xlsx'), index_col=1, header=0)['Inter-measures.T50_common_count']), **kwargs)
 
             shutil.copyfile(os.path.join(self.bootstrapDir, case, '%s dendrogram-heatmap-correlation.png' % case), os.path.join(self.workingDir, 'results %s.png' % case))
 
@@ -1770,41 +1790,47 @@ class Analysis():
         se_heights.index = se_heights.index.get_level_values(0)
 
         # Example plot of determining peaks
-        if False:
+        if True:
+            e = 'All' # 'Experiment 1' 'All'
+            
             if False:
-                self.reanalyzeMain(case='Experiment 1', togglePublicationFigure=True, toggleIncludeHeatmap=False, markersLabelsRepelForce=1.0)
-
-            maxpeak = False
-
-            e = 'Experiment 1'
-            se = df.xs('species', level='species', axis=0).copy().xs(e, level='experiment')
+                self.reanalyzeMain(case=e, togglePublicationFigure=True, toggleIncludeHeatmap=False, markersLabelsRepelForce=1.5)
+            
+            if e == 'All':
+                se = pd.read_hdf(os.path.join(self.bootstrapDir, 'All', 'dendrogram-heatmap-correlation-data.h5'), key='df_C')[variant]
+                se.index.name = 'gene'
+            else:
+                se = df.xs('species', level='species', axis=0).copy().xs(e, level='experiment')
 
             fig, ax = plt.subplots(figsize=(8,2))
             ax.plot(range(len(se)), se.values, color='coral', linewidth=1.5, zorder=np.inf)
 
-            if maxpeak:
-                x = np.where(np.isin(se.index.values, getGenesOfPeak(se, peak=np.argmax(se))))[0]
+            if e == 'All':
+                listsDict, allgenes = getPeaksLists(pd.concat([se.to_frame().copy()], keys=['All'], names=['experiment'], axis=0, sort=False)[variant])
+                se_peakAssignments = pd.Series(listsDict).apply(pd.Series)
+                df_m_a = pd.DataFrame(index=allgenes, data=0, columns=se_peakAssignments.index)
+                for peak in df_m_a.columns:
+                    df_m_a.loc[se_peakAssignments.loc[peak].dropna().values, peak] = 1
+                se_peaks = df_m_a.xs(e, level=0, axis=1)
+            else:
+                se_peaks = df_m.xs(e, level=0, axis=1)
+
+            for peak in se_peaks[:]:
+                se_peak = se_peaks[peak]
+                se_peak = se_peak[se_peak == 1]
+                x = np.where(np.isin(se.index.values, se_peak.index.values))[0]
                 y = se.iloc[x].values
-                ax.fill_between(x, y, facecolor='grey', edgecolor='grey', alpha=0.5)
+
+                if peak[1] == 1.:
+                    print(len(se_peak))
+                    print(cleanListString(se_peak.index.values.tolist()))
+
+                c = 'grey' if peak[1] != 1. else 'blue'
+                ax.fill_between(x, y, facecolor=c, edgecolor=c, alpha=0.5)
 
                 pg = se.index.values[x][np.argmax(y)]
                 ax.text(x[np.argmax(y)], -0.001, pg, fontsize=8, rotation=90, va='top', ha='center')
                 ax.plot([x[np.argmax(y)] - 1, x[np.argmax(y)] - 1], [0, max(y)], color='k', linewidth=1., alpha=1.)
-            else:
-                se_peaks = df_m.xs(e, level=0, axis=1)
-
-                for peak in se_peaks[-1:]:
-                    se_peak = se_peaks[peak]
-                    se_peak = se_peak[se_peak == 1]
-                    x = np.where(np.isin(se.index.values, se_peak.index.values))[0]
-                    y = se.iloc[x].values
-
-                    c = 'grey' if peak[1] != 1. else 'blue'
-                    ax.fill_between(x, y, facecolor=c, edgecolor=c, alpha=0.5)
-
-                    pg = se.index.values[x][np.argmax(y)]
-                    ax.text(x[np.argmax(y)], -0.001, pg, fontsize=8, rotation=90, va='top', ha='center')
-                    ax.plot([x[np.argmax(y)] - 1, x[np.argmax(y)] - 1], [0, max(y)], color='k', linewidth=1., alpha=1.)
 
             ax.set_xticks([])
             ax.set_xticklabels([])
@@ -1812,17 +1838,16 @@ class Analysis():
             ax.set_yticks(yticks)
             ax.set_yticklabels(yticks)
             ax.tick_params(axis='y', labelsize=8, width=0.75, length=3)
-            ax.text(-0.05, 0.5, 'Combination 3', fontsize=10, rotation=90, va='center', ha='right', transform=ax.transAxes)
+            ax.text(-0.05, 0.5, 'Combination of 3', fontsize=8, rotation=90, va='center', ha='right', transform=ax.transAxes)
             ax.set_xlim([0, len(se)])
             ax.set_ylim([0, 0.03])
 
             fig.tight_layout()
-            if maxpeak:
-                fig.savefig(self.workingDir + 'one example maxpeaks %s.png' % variant, dpi=600)
-            else:
-                fig.savefig(self.workingDir + 'one example peaks %s.png' % variant, dpi=600)
+            fig.savefig(self.workingDir + 'one example peaks %s.png' % variant, dpi=600)
 
             plt.close(fig)
+
+            exit()
 
         Z1 = hierarchy.linkage(df_m, 'ward')
         Z2 = hierarchy.linkage(df_m.T, 'ward')
