@@ -585,10 +585,13 @@ def get_dendro_dist_dict(dendro_dict, BS = False):
         dendro_dist_dict = {}
         for k in dendro_dict:
             print(k)
-            dendro_dist_dict[k] = pd.DataFrame()
-            for c1 in dendro_dict[k].index:
-                for c2 in dendro_dict[k].index:
-                    dendro_dist_dict[k].loc[c1,c2] =  abs(dendro_dict[k].loc[c1,"Dendrogram"] - dendro_dict[k].loc[c2,"Dendrogram"]) 
+            curr_df = dendro_dict[k][["Dendrogram"]].dropna()
+            dendro_dist_dict[k] = pd.DataFrame([np.abs(curr_df["Dendrogram"].values -x) for x in curr_df["Dendrogram"].values],
+                                                index = curr_df.index,
+                                                columns = curr_df.index)
+            #for c1 in dendro_dict[k].index:
+             #   for c2 in dendro_dict[k].index:
+              #      dendro_dist_dict[k].loc[c1,c2] =  abs(dendro_dict[k].loc[c1,"Dendrogram"] - dendro_dict[k].loc[c2,"Dendrogram"]) 
                                                                   
                    
     else:
@@ -603,8 +606,8 @@ def get_dendro_dist_dict(dendro_dict, BS = False):
                 count +=1
                 if count %10 ==9: print(count)
                 dendro_dist_dict[k][k2] = []
-                vals = dendro_dict[k][k2]["Dendrogram"].values
-                genes = dendro_dict[k][k2].index
+                vals = dendro_dict[k][k2]["Dendrogram"].dropna().values
+                genes = dendro_dict[k][k2]["Dendrogram"].dropna().index
                 for i in range(len(vals)):
                     #if c1 != "KDR": continue
                     dendro_dist_dict[k][k2].append([])
@@ -614,7 +617,6 @@ def get_dendro_dist_dict(dendro_dict, BS = False):
         dendro_dist_dict[k][k2] = pd.DataFrame(dendro_dist_dict[k][k2], index=genes,columns = genes)
         
     return dendro_dist_dict
-
 """
 Get the conservation for each gene based on dendrogram distance.
 Parameters:
@@ -887,5 +889,37 @@ def read_sra (sra_dir,sra, endo_cell_df):
 
     return all_count, endo_cell_list
     
+      
+def pre_process_batch(df_dict,
+                      cell_dict,
+                      genes1 = None,
+                      genes2=None,
+                      fraciont = .05,
+                      norm = True):
+    count = 0
+    diff_dict = {}
+    corr_dict = {}
+    for k in df_dict:
+        if count%10 == 9:
+            print("%i/%i"%(count+1,len(df_dict)))
+        count+=1
+        
+        data = df_dict[k]
+        cell_list = cell_dict[k]
+        other_cells = set(data.columns)-set(cell_list)
+        
+        curr_time = time.time()
+        corr_df = ca.get_corr(data[cell_list],genes1,genes2, log_scale = norm, fraction=fraction)
+        
+        
+        curr_time = time.time()
+        gene_stats_df = ca.get_diff(data[cell_list], data[other_cells],log_scale = norm)
+        
+        df_dict[k] = gene_stats_df
+        corr_dict[k] = corr_df
+        
+        
+    return df_dict,corr_dict
+        
     
 
