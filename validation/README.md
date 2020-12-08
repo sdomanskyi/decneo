@@ -24,6 +24,9 @@ For each of these species provide the input gene expression data is expected in 
 | **G4** | 10 |    | 5 | 4  |...|
 | **...**| ...|... |...| ...|...|
 
+When using an expression data as the input, the `cell_list` parameter is also required. This should be set to the
+list of the endothelial cells included in the input count file. 
+
 The analysis takes in other optional parameters as well. 
 Please refer to them in the ``full_data_process`` function in ``Dendro_Dict.py``
 
