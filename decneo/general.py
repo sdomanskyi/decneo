@@ -54,7 +54,9 @@ else:
 from string import Template
 panglaoURL = Template('https://panglaodb.se/data_dl.php?sra=${SRA}&srs=${SRS}&filetype=R&datatype=readcounts')
 RDataFileName = lambda SRA, SRS: '%s%s.sparse.RData.h5' % (SRA, '_' + SRS if SRS!='notused' else '')
-    
+
+phdf = dict(mode='a', complevel=4, complib='zlib')    
+
 def write(data, fileName, jsonFormat = False):
     
     '''Pickle object into a (binary) file

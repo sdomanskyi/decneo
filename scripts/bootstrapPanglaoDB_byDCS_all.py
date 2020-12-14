@@ -129,11 +129,15 @@ if __name__ == '__main__':
         prepareInput(wdir + 'PanglaoDB_byDCS_human/data.h5', 'Homo sapiens')
         prepareInput(wdir + 'PanglaoDB_byDCS_mouse/data.h5', 'Mus musculus')
 
-    anHuman, anMouse = process(*(None, None), *(None, None),
-                                wdir + 'PanglaoDB_byDCS_human/', wdir + 'PanglaoDB_byDCS_mouse', 
-                                nCPUs=4 if platform.system()=="Windows" else 20, parallelBootstrap=False,
-                                PCNpath=os.path.join(os.path.dirname(__file__), 'data'), exprCutoff1=0.01, 
-                                genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC23, perEachOtherCase=True)
+    # Spearman: Human part1->1hr, mouse part1a->1hr&222GB, mouse part1b->10hrs&180GB
+    parameters = dict(nCPUs=4 if platform.system()=="Windows" else 20, parallelBootstrap=False,
+                PCNpath=os.path.join(os.path.dirname(__file__), 'data'), exprCutoff1=0.05, exprCutoff2=0.05, 
+                genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC22, perEachOtherCase=True, part1=False, part2=True,
+                majorMetric='correlation',                # (1) correlation    (2) spearman 
+                dendrogramMetric='euclidean',           # (1) euclidean    (2) correlation
+                dendrogramLinkageMethod='ward')       # (1) ward    (2) complete (3) average
 
-    anHuman.reanalyzeMain(togglePublicationFigure=True, toggleIncludeHeatmap=False, markersLabelsRepelForce=1.25)
-    anMouse.reanalyzeMain(togglePublicationFigure=True, toggleIncludeHeatmap=False, markersLabelsRepelForce=1.5)
+    anHuman, anMouse = process(*(None, None), *(None, None), wdir + 'PanglaoDB_byDCS_human_%s/' % parameters['majorMetric'], wdir + 'PanglaoDB_byDCS_mouse_%s/' % parameters['majorMetric'], **parameters)
+
+    #anHuman.reanalyzeMain(togglePublicationFigure=True, markersLabelsRepelForce=1.25, includeClusterNumber=False)
+    #anMouse.reanalyzeMain(togglePublicationFigure=True, markersLabelsRepelForce=1.5, includeClusterNumber=False)

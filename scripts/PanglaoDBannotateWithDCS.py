@@ -269,7 +269,9 @@ if __name__ == '__main__':
                     print('SRA:', len(np.unique(df_anno.index.str.split('_', expand=True).get_level_values(0))), 'SRS:', len(np.unique(df_anno.index.str.split('_', expand=True).get_level_values(1))))
 
                     makeBarplot(df_anno['Tissue'].values, DCS.saveDir, 'barplotByTissues')
-                    DCS.makeProjectionPlot(df_projection.values, df_anno['Tissue'].values, legend=True, labels=True, suffix='by Tissue cut', rightShift=0.45) # 0.15 0.45
+                    DCS.makeProjectionPlot(df_projection.values, df_anno['Tissue'].values, legend=False, labels=True, suffix='by Tissue cut', rightShift=0.0, fontsize=18)
+
+                    #DCS.makeProjectionPlot(df_projection.values, df_anno['Tissue'].values, legend=True, labels=True, suffix='by Tissue cut', rightShift=0.45) # 0.15 0.45
 
                     # Other quantities
                     if False:

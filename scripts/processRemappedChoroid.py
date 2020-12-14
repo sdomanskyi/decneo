@@ -149,13 +149,15 @@ if __name__ == '__main__':
         makeBarplot(se[se!='Failed QC'].index.get_level_values('batch'), DCS.saveDir, 'barplotBy_batches')
         makeBarplot(se[se == 'Endothelial'].index.get_level_values('batch'), DCS.saveDir, 'barplotEC_By_batches')
 
-    if False:
+    if True:
         df_projection = pd.read_hdf(DCS.fileHDFpath, key='df_projection')
-        DCS.makeProjectionPlot(df_projection.values, df_projection.columns.get_level_values('batch'), legend=True, labels=True, suffix='byBatches', rightShift = 0.4)
+        DCS.makeProjectionPlot(df_projection.values, df_projection.columns.get_level_values('batch'), legend=False, labels=True, fontsize=18,  suffix='byBatches', rightShift = 0.0)
         se_celltype = pd.read_hdf(DCS.fileHDFpath, key='df_markers_expr').iloc[0].reset_index().set_index(['batch', 'cell'])['label'].str.split(' #', expand=True)[0]
-        DCS.makeProjectionPlot(df_projection.values, se_celltype.reindex(df_projection.columns).values, legend=True, labels=True, suffix='byCelltype', rightShift = 0.4)
+        
+        #makeGeneProjectionPlot(['NRP1', 'ITGA6', 'PECAM1', 'KDR', 'LIFR', 'IL6ST', 'ROBO4', 'PLXND1', 'OSMR'], saveDir='remappedChoroid4567_DCS/')
+        
+        DCS.makeProjectionPlot(df_projection.values, se_celltype.reindex(df_projection.columns).values, fontsize=18, legend=False, labels=True, suffix='byCelltype', rightShift = 0.0)
 
-        makeGeneProjectionPlot(['NRP1', 'ITGA6', 'PECAM1', 'KDR', 'LIFR', 'IL6ST', 'ROBO4', 'PLXND1', 'OSMR'], saveDir='remappedChoroid4567_DCS/')
 
     # Other dev stuff
     if False:

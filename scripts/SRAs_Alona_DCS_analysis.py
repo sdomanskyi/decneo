@@ -120,7 +120,9 @@ def plot_analyze_SRAs(wdir, cfile):
         if True:
             b3, b4 = getDf(keys, 'combo3', 'b', species), getDf(keys, 'combo4', 'b', species)
 
-            b3 = b3[b3.columns[~np.isin(b3.columns.str.split(' ', expand=True).get_level_values(0).values, ['Muscle', 'Mammary', 'Heart', 'Liver'])]].drop('Kidney Homo sapiens SRA705190', axis=1)
+            b3 = b3[b3.columns[~np.isin(b3.columns.str.split(' ', expand=True).get_level_values(0).values, ['Muscle', 'Mammary', 'Liver'])]].drop('Kidney Homo sapiens SRA705190', axis=1)
+
+            # 'Heart'
 
             df_temp = pd.DataFrame(columns=['u', 'v'])
             b3c = b3.corr()
@@ -182,7 +184,8 @@ def umap_SRAs(wdir):
 
 if __name__ == '__main__':
 
-    #plot_analyze_SRAs('d:/Projects/A_Endothelial/VS/Endothelial/results/DCS_SRAs/', 'results_DCS_SRAs.h5')
+    plot_analyze_SRAs('d:/Projects/A_Endothelial/VS/Endothelial/results/DCS_SRAs/', 'results_DCS_SRAs.h5')
+    exit()
 
     wdir = 'd:/Projects/A_Endothelial/VS/Endothelial/results/for meeting 10 15 2020/'
 
@@ -298,7 +301,7 @@ if __name__ == '__main__':
 
                 df_temp = df_temp.drop([('Homo sapiens', 'Kidney'),
                                         ('Mus musculus', 'Liver'),
-                                        ('Mus musculus', 'Heart'),
+                                        #('Mus musculus', 'Heart'),
                                         ('Mus musculus', 'Muscle'),
                                         ('Mus musculus', 'Mammary')])
 
@@ -370,6 +373,8 @@ if __name__ == '__main__':
 
                 #ax.set_title('combo%s %s' % (combo, tool), fontdict={'color': 'b', 'size':'8'})
                 #fig.tight_layout()
+
+                print(wdir + 'combo%s %s bootstrap counts.png' % (combo, tool))
                 fig.savefig(wdir + 'combo%s %s bootstrap counts.png' % (combo, tool), dpi=600)
                 fig.savefig(wdir + 'combo%s %s bootstrap counts.pdf' % (combo, tool))
 

@@ -30,7 +30,10 @@ class Analysis():
             Number of bootstrap experiments to perform
 
         majorMetric: str, Default 'correlation'
-            Metric name (e.g. 'correlation', 'cosine', 'euclidean')
+            Metric name (e.g. 'correlation', 'cosine', 'euclidean', 'spearman')
+
+        methodForDEG: str, Default 'ttest'
+            Possible options: {'ttest', 'mannwhitneyu'}
 
         perEachOtherCase: boolean, Default False 
             Whether to perform comparisons of bootstrap experiments with other bootstrap experiments or with a single case
@@ -46,7 +49,7 @@ class Analysis():
        
     '''
 
-    def __init__(self, workingDir = '', otherCaseDir = '', genesOfInterest = None, knownRegulators = None, nCPUs = 1, panels = None, nBootstrap = 100, majorMetric = 'correlation', perEachOtherCase = False, metricsFile = 'metricsFile.h5', seed = None, PCNpath = 'data/', minBatches = 5, pseudoBatches = 10):
+    def __init__(self, workingDir = '', otherCaseDir = '', genesOfInterest = None, knownRegulators = None, nCPUs = 1, panels = None, nBootstrap = 100, majorMetric = 'correlation', perEachOtherCase = False, metricsFile = 'metricsFile.h5', seed = None, PCNpath = 'data/', minBatches = 5, pseudoBatches = 10, dendrogramMetric = 'euclidean', dendrogramLinkageMethod = 'ward', methodForDEG = 'ttest'):
 
         '''Function called automatically and sets up working directory, files, and input information'''
 
@@ -81,6 +84,9 @@ class Analysis():
         self.panels = panels
         self.nBootstrap = nBootstrap
         self.majorMetric = majorMetric
+        self.dendrogramMetric = dendrogramMetric
+        self.dendrogramLinkageMethod = dendrogramLinkageMethod
+        self.methodForDEG = methodForDEG
 
         self.minBatches = minBatches
         self.pseudoBatches = pseudoBatches
@@ -100,8 +106,8 @@ class Analysis():
 
     standardPanels = [
         'fraction', 
-        'top50', 
         'binomial', 
+        'top50', 
         'markers', 
         ]
 
@@ -121,7 +127,7 @@ class Analysis():
     combinationPanels = [
         'combo3avgs',
         'combo4avgs',
-        #'combo3avgs-peak',
+        #'combo3avgs-peak', # Use this syntax to include panels with genes of peak
         ]
 
     combinationPanelsDict = {
@@ -137,7 +143,7 @@ class Analysis():
         'combo7avgs': ['fraction', 'top50', 'binomial', 'markers', 'PubMedHits', 'gAbove50_PanglaoMouse', 'gAbove50_PanglaoHuman'],
         }
 
-    def prepareDEG(self, dfa, dfb):
+    def prepareDEG(self, dfa, dfb, pvalueLimit = 0.001):
 
         '''Save gene expression data of cell type of interest.
         Create rank dataframe (df_ranks) with genes ranked by differential expression 
@@ -150,6 +156,9 @@ class Analysis():
             dfb: pandas.Dataframe
                 Dataframe containing expression data for cells of type other than cell type of interest
                 Has genes as rows and (batches, cells) as columns 
+
+            pvalueLimit: float, Default 0.001
+                Maximum possible p-value to include
 
         Returns:
             None 
@@ -171,13 +180,28 @@ class Analysis():
         genes = []
         batches = []
         for batch in np.unique(dfa.columns.get_level_values('batch').values):
-            df_ttest = pd.DataFrame(index=dfa.index, columns=['statistic', 'pvalue'])
-            ttest = scipy.stats.ttest_ind(dfa.xs(batch, level='batch', axis=1, drop_level=False).values, 
-                                            dfb.xs(batch, level='batch', axis=1, drop_level=False).values, axis=1)
-            df_ttest['statistic'] = ttest[0]
-            df_ttest['pvalue'] = ttest[1]
-            df_ttest = df_ttest.sort_values('statistic', ascending=False).dropna()
-            genes.append(df_ttest.loc[df_ttest['pvalue'] <= 10**-3]['statistic'].index.values)
+
+            df_temp_a = dfa.xs(batch, level='batch', axis=1, drop_level=False)
+            df_temp_b = dfb.xs(batch, level='batch', axis=1, drop_level=False)
+
+            if self.methodForDEG == 'ttest':
+                ttest = scipy.stats.ttest_ind(df_temp_a.values, df_temp_b.values, axis=1)
+                df_test = pd.DataFrame(index=dfa.index, columns=['statistic', 'pvalue'])
+                df_test['statistic'] = ttest[0]
+                df_test['pvalue'] = ttest[1]                            
+                df_test = df_test.sort_values('statistic', ascending=False).dropna()
+
+            elif self.methodForDEG == 'mannwhitneyu':
+                df_temp_a = df_temp_a.apply(np.array, axis=1)
+                df_temp_b = df_temp_b.apply(np.array, axis=1)
+                df_temp = pd.concat([df_temp_a, df_temp_b], axis=1, sort=False)   
+                df_temp = df_temp.loc[(df_temp[0].apply(np.sum) + df_temp[1].apply(np.sum)) > 0]
+                df_test = df_temp.apply(lambda v: pd.Series(np.array(scipy.stats.mannwhitneyu(v[0], v[1]))), axis=1)
+                df_test.columns = ['statistic', 'pvalue']
+                df_test = df_test.sort_values('pvalue', ascending=True).dropna()
+                
+            #print(df_test)
+            genes.append(df_test.loc[df_test['pvalue'] <= pvalueLimit]['statistic'].index.values)
             batches.append(batch)
 
         ugenes = []
@@ -292,7 +316,9 @@ class Analysis():
             np.savetxt(os.path.join(self.bootstrapDir, saveSubDir, 'size.txt'), [df_fraction_temp.shape[0], se_count_temp.sum()], fmt='%i')
 
             if not df_ranks is None:
-                df_ranks_temp = df_ranks[batches]
+                batches = np.loadtxt(os.path.join(self.bootstrapDir, saveSubDir, 'batches.txt'), dtype=str)
+
+                df_ranks_temp = df_ranks[df_ranks.columns.intersection(batches)]
                 df_ranks_temp.columns = df_ranks_temp.columns + '_' + np.array(range(len(df_ranks_temp.columns))).astype(str)
                 df_ranks_temp = df_ranks_temp.median(axis=1).sort_values()
                 df_ranks_temp.to_hdf(os.path.join(self.bootstrapDir, saveSubDir, 'perGeneStats.h5'), key='df_ranks', mode='a', complevel=4, complib='zlib')
@@ -347,6 +373,7 @@ class Analysis():
             else:
                 for saveSubDir in saveSubDirs:
                     self._forPrepareBootstrapExperiments((saveSubDir, df_ranks, df_measure, df_fraction, df_median_expr, se_count))
+                    #self._forPrepareBootstrapExperiments((saveSubDir, df_ranks, None, None, None, None))
 
             print(flush=True)
 
@@ -400,8 +427,8 @@ class Analysis():
 
                 return
 
-        n23_1 = len(np.intersect1d(np.unique(df1.index.get_level_values('gene').values), gEC23))
-        n23_2 = len(np.intersect1d(np.unique(df2.index.get_level_values('gene').values), gEC23))
+        n23_1 = len(np.intersect1d(np.unique(df1.index.get_level_values('gene').values), gEC22))
+        n23_2 = len(np.intersect1d(np.unique(df2.index.get_level_values('gene').values), gEC22))
 
         commonIndex = df1.index.intersection(df2.index)
         df1 = df1.loc[commonIndex]
@@ -527,7 +554,7 @@ class Analysis():
         for id in self.bootstrapExperiments:
             saveSubDir = 'Experiment %s' % (id + 1)
 
-            filePath = os.path.join(self.bootstrapDir, saveSubDir, 'dendrogram-heatmap-correlation-data.h5')
+            filePath = os.path.join(self.bootstrapDir, saveSubDir, 'dendrogram-heatmap-%s-data.h5' % self.majorMetric)
             try:
                 df_temp = pd.read_hdf(filePath, key='df_C')
                 df_temp.index.name = 'gene'
@@ -618,7 +645,7 @@ class Analysis():
             umL = np.unique(listsMerged, return_counts=True)
             se = pd.Series(index=umL[0], data=umL[1]/len(experiments)).sort_values(ascending=False)
 
-            filePath = os.path.join(self.bootstrapDir + '/All/', 'dendrogram-heatmap-correlation-data.xlsx')
+            filePath = os.path.join(self.bootstrapDir + '/All/', 'dendrogram-heatmap-%s-data.xlsx' % self.majorMetric)
             peakGenesAll = getGenesOfPeak(pd.read_excel(filePath, index_col=0, header=0, sheet_name='Cluster index')[variant])
             df_res = pd.concat([se, se], axis=1, sort=False)
             df_res.iloc[:, 1] = np.where(np.isin(df_res.index.values, peakGenesAll), 1, np.nan)
@@ -742,7 +769,7 @@ class Analysis():
             an.scramble (measures)
         '''
 
-        df = pd.read_excel(os.path.join(self.bootstrapDir + '%s/dendrogram-heatmap-correlation-data.xlsx' % case), index_col=0, header=0, sheet_name='Cluster index')
+        df = pd.read_excel(os.path.join(self.bootstrapDir + '%s/dendrogram-heatmap-%s-data.xlsx' % (case, self.majorMetric)), index_col=0, header=0, sheet_name='Cluster index')
 
         workingDir = self.workingDir + 'random/'
         if subDir != '':
@@ -820,7 +847,7 @@ class Analysis():
 
         return
 
-    def analyzeCase(self, df_expr, toggleCalculateMajorMetric = True, exprCutoff = 0.05, toggleExportFigureData = True, toggleCalculateMeasures = True, suffix = '', saveDir = '', toggleGroupBatches = True, dpi = 300, toggleAdjustText = True, markersLabelsRepelForce = 1.5, figureSize=(8, 22), toggleAdjustFigureHeight=True, noPlot = False, halfWindowSize = 10, printStages = True, externalPanelsData = None, toggleIncludeHeatmap = True, addDeprecatedPanels = False, togglePublicationFigure = False):
+    def analyzeCase(self, df_expr, toggleCalculateMajorMetric = True, exprCutoff = 0.05, toggleExportFigureData = True, toggleCalculateMeasures = True, suffix = '', saveDir = '', toggleGroupBatches = True, dpi = 300, toggleAdjustText = True, markersLabelsRepelForce = 1.5, figureSize=(8, 22), toggleAdjustFigureHeight=True, noPlot = False, halfWindowSize = 10, printStages = True, externalPanelsData = None, toggleIncludeHeatmap = True, addDeprecatedPanels = False, includeClusterNumber = True, togglePublicationFigure = False):
 
         '''Analyze, calculate, and generate plots for individual experiment
         
@@ -950,7 +977,7 @@ class Analysis():
 
             return
 
-        def makeCombinationPlot(df, metric = 'euclidean', linkageMethod = 'ward', n_clusters = 10, adjustText = toggleAdjustText):
+        def makeCombinationPlot(df, n_clusters = 10, adjustText = toggleAdjustText):
 
             '''Builds and plots dendrogram, heatmap, and bargraphs.
 
@@ -981,21 +1008,29 @@ class Analysis():
                 makeCombinationPlot(df)
             '''
              
-            nonlocal figureSize, self, togglePublicationFigure, markersLabelsRepelForce
+            nonlocal figureSize, self, togglePublicationFigure, markersLabelsRepelForce, includeClusterNumber
+
+            metric = self.dendrogramMetric
+            linkageMethod = self.dendrogramLinkageMethod
+            
+            if metric == 'euclidean_missing':
+                metric = metric_euclidean_missing
 
             if self.panels is None:
-                self.panels = self.combinationPanels + self.standardPanels
+                self.panels = self.standardPanels
 
                 if addDeprecatedPanels:
                     self.panels += deprecatedPanels
 
-            def addDendro(fig, dataGenes, M, coords, metric=metric, linewidth=0.25, adjustText = adjustText, fontsize = 5):
+                self.panels += self.combinationPanels
+
+            def addDendro(fig, dataGenes, M, coords, metric = metric, linkageMethod = 'ward', linewidth = 0.25, adjustText = adjustText, fontsize = 5):
 
                 genesSubset = list(stimulators) + list(inhibitors)
 
                 ax = fig.add_axes(coords, frame_on=False)
 
-                Z = hierarchy.linkage(np.nan_to_num(M, nan=max(M)), method='ward', optimal_ordering=True)
+                Z = hierarchy.linkage(np.nan_to_num(M, nan=max(M)), method=linkageMethod, optimal_ordering=True)
 
                 origLineWidth = matplotlib.rcParams['lines.linewidth']
                 matplotlib.rcParams['lines.linewidth'] = linewidth
@@ -1059,9 +1094,10 @@ class Analysis():
                     clusterCenters = clusterBoundaries[:-1] + ((clusterBoundaries - np.roll(clusterBoundaries, 1))/2.)[1:]
                     vposition = (Z[-n_clusters,2] + Z[-n_clusters+1,2]) / 5
 
-                    for cluster, position in zip(np.unique(clusters), clusterCenters):
-                        ltext = ax.text(position, vposition, '#%s' % cluster, fontsize=fontsize, color='white', va='center', ha='center')
-                        ltext.set_path_effects([path_effects.Stroke(linewidth=1., foreground='k'), path_effects.Normal()])
+                    if includeClusterNumber:
+                        for cluster, position in zip(np.unique(clusters), clusterCenters):
+                            ltext = ax.text(position, vposition, '#%s' % cluster, fontsize=fontsize, color='white', va='center', ha='center')
+                            ltext.set_path_effects([path_effects.Stroke(linewidth=1., foreground='k'), path_effects.Normal()])
 
                 return {'order': D['leaves'], 
                         'M': squareform(M)[:, D['leaves']][D['leaves'], :], 
@@ -1172,7 +1208,8 @@ class Analysis():
                     ax.set_yticks([])
                     ax.set_yticklabels([])
 
-                    clb = fig.colorbar(im, ax=ax, fraction=0.4, label='Eucl. dist. of gene expr.\n %s dist.' % self.majorMetric)
+                    ltext = '' # 'Eucl. dist. of gene expr.\n %s dist.' % self.majorMetric
+                    clb = fig.colorbar(im, ax=ax, fraction=0.4, label=ltext)
                     clb.ax.tick_params(labelsize=fontsize)
 
                 return
@@ -1454,14 +1491,10 @@ class Analysis():
 
                 return ylabel, data, data_avg
 
-            if metric == 'euclidean_missing':
-                metric = metric_euclidean_missing
 
             mmin, mmax = np.nanmin(np.nanmin(df.values)), np.nanmax(np.nanmax(df.values))
 
-            if self.majorMetric == 'correlation':
-                missingFillValue = 1.0
-            elif self.majorMetric == 'cosine':
+            if self.majorMetric in ['correlation', 'spearman', 'cosine']:
                 missingFillValue = 1.0
             elif self.majorMetric == 'euclidean':
                 missingFillValue = mmax
@@ -1495,7 +1528,7 @@ class Analysis():
 
             fig = plt.figure(figsize=figureSize)
 
-            dataArgs = addDendro(fig, df.columns, M, [0.1, topBorder-dendroHeight, 0.75, dendroHeight], metric=metric)
+            dataArgs = addDendro(fig, df.columns, M, [0.1, topBorder-dendroHeight, 0.75, dendroHeight], metric=metric, linkageMethod=linkageMethod)
 
             heatmapHeight = (topBorder - bottomBorder - dendroHeight) - nPanels * (panelHeight + detla) - 0.05*factor
             if nPanels > 0:
@@ -1503,8 +1536,8 @@ class Analysis():
                     print('\tPlotting bar panels . . .', end='\t', flush=True)
                 panelsData = dict()
                 panelsDataNames = dict()
-                for ipanel, panel in enumerate(reversed(self.panels)):
-                    panelName, data, data_avg = addBar(fig, dataArgs, panel, [0.1, 0.015*factor + bottomBorder + heatmapHeight + ipanel*(panelHeight + detla), 0.75, panelHeight])
+                for ipanel, panel in enumerate(self.panels):
+                    panelName, data, data_avg = addBar(fig, dataArgs, panel, [0.1, 0.015*factor + bottomBorder + heatmapHeight + (len(self.panels) - ipanel - 1)*(panelHeight + detla), 0.75, panelHeight])
 
                     wname = panelName.replace('\n', ' ')
 
@@ -1706,7 +1739,9 @@ class Analysis():
             
             self.analyzeCase(None, toggleAdjustText=True, dpi=600, suffix=case, saveDir=os.path.join(self.bootstrapDir, '%s/' % case), printStages=True, toggleCalculateMajorMetric=False, toggleExportFigureData=True, toggleCalculateMeasures=False, externalPanelsData=dict(externalPanelsData, conservedGenes=pd.read_excel(os.path.join(self.bootstrapDir, case, 'comparison.xlsx'), index_col=1, header=0)['Inter-measures.T50_common_count']), **kwargs)
 
-            shutil.copyfile(os.path.join(self.bootstrapDir, case, '%s dendrogram-heatmap-correlation.png' % case), os.path.join(self.workingDir, 'results %s.png' % case))
+            shutil.copyfile(os.path.join(self.bootstrapDir, case, '%s dendrogram-heatmap-%s.png' % (case, self.majorMetric)), os.path.join(self.workingDir, 'results %s %s %s %s.png' % (case, self.majorMetric, self.dendrogramMetric, self.dendrogramLinkageMethod)))
+            
+            shutil.copyfile(os.path.join(self.bootstrapDir, case, 'dendrogram-heatmap-%s-data.xlsx' % (self.majorMetric)), os.path.join(self.workingDir, 'results %s %s %s %s.xlsx' % (case, self.majorMetric, self.dendrogramMetric, self.dendrogramLinkageMethod)))
 
         except Exception as exception:
             print(exception)
@@ -1790,14 +1825,14 @@ class Analysis():
         se_heights.index = se_heights.index.get_level_values(0)
 
         # Example plot of determining peaks
-        if True:
+        if False:
             e = 'All' # 'Experiment 1' 'All'
             
             if False:
                 self.reanalyzeMain(case=e, togglePublicationFigure=True, toggleIncludeHeatmap=False, markersLabelsRepelForce=1.5)
             
             if e == 'All':
-                se = pd.read_hdf(os.path.join(self.bootstrapDir, 'All', 'dendrogram-heatmap-correlation-data.h5'), key='df_C')[variant]
+                se = pd.read_hdf(os.path.join(self.bootstrapDir, 'All', 'dendrogram-heatmap-%s-data.h5' % self.majorMetric), key='df_C')[variant]
                 se.index.name = 'gene'
             else:
                 se = df.xs('species', level='species', axis=0).copy().xs(e, level='experiment')
@@ -1949,7 +1984,7 @@ class Analysis():
                 ax.set_xticks([])
                 ax.set_yticklabels([])
                 ax.set_yticks([])
-                ax.set_title('Genes groups')
+                ax.set_title('Receptors')
 
             # Peaks dendrogram
             if True:
@@ -1966,7 +2001,7 @@ class Analysis():
                 ax.set_xticks([])
                 ax.set_yticklabels([])
                 ax.set_yticks([])
-                ax.set_title('Peaks groups')
+                ax.set_title('Peaks')
 
             # Heatmap
             if True:
@@ -2023,7 +2058,6 @@ class Analysis():
                 clb.ax.tick_params(labelsize=6)
             
             fig.savefig(self.workingDir + 'all peaks %s.png' % variant, dpi=600)
-            fig.savefig(self.workingDir + 'all peaks %s.pdf' % variant)
             plt.close(fig)
 
         return
@@ -2076,12 +2110,23 @@ class Analysis():
 
         '''Generate analysis report.
         '''
+        
+        saveDir = os.path.join(self.workingDir, 'results majorMetric=%s, dendrogramMetric=%s, linkageMethod=%s' % (self.majorMetric, self.dendrogramMetric, self.dendrogramLinkageMethod))
+
+        os.makedirs(saveDir)
+
+        for file in os.listdir(self.workingDir):
+            if file != 'data.h5' and not os.path.isdir(os.path.join(self.workingDir, file)):
+                try:
+                    shutil.copyfile(os.path.join(self.workingDir, file), os.path.join(saveDir, file))
+                except Exception as exception:
+                    print('Cannot copy file:', file, '\n', exception)
 
         return 
 
-def process(df1main, df1other, df2main, df2other, dir1, dir2, genesOfInterest = None, knownRegulators = None, nCPUs = 4, 
-            panels = ['combo3avgs', 'combo4avgs', 'fraction', 'binomial', 'markers', 'top50'], parallelBootstrap = False,
-            exprCutoff1 = 0.05, exprCutoff2 = 0.05, perEachOtherCase = True, **kwargs):
+def process(df1main, df1other, df2main, df2other, dir1, dir2, genesOfInterest = None, knownRegulators = None, nCPUs = 4,
+            panels = ['fraction', 'binomial', 'top50', 'markers', 'combo3avgs', 'combo4avgs'], parallelBootstrap = False,
+            exprCutoff1 = 0.05, exprCutoff2 = 0.05, perEachOtherCase = True, doScramble = False, part1 = True, part2 = True, **kwargs):
 
     '''Main workflow programmed in two scenaria depending on parameter "perEachOtherCase".
 
@@ -2142,54 +2187,60 @@ def process(df1main, df1other, df2main, df2other, dir1, dir2, genesOfInterest = 
         genesOfInterest = receptorsListHugo_2555
     
     if knownRegulators is None:
-        knownRegulators = gEC23
+        knownRegulators = gEC22
 
     an1 = Analysis(workingDir=dir1, otherCaseDir=dir2, genesOfInterest=genesOfInterest,
-                        knownRegulators=knownRegulators, panels=panels, nCPUs=nCPUs, **kwargs)
+                        knownRegulators=knownRegulators, panels=panels, nCPUs=nCPUs, perEachOtherCase=perEachOtherCase, **kwargs)
 
     if perEachOtherCase:
         an2 = Analysis(workingDir=dir2, otherCaseDir=dir1, genesOfInterest=genesOfInterest,
-                            knownRegulators=knownRegulators, panels=panels, nCPUs=nCPUs, **kwargs)
+                            knownRegulators=knownRegulators, panels=panels, nCPUs=nCPUs, perEachOtherCase=perEachOtherCase, **kwargs)
 
-    if not df1main is None:
-        an1.prepareDEG(df1main, df1other)
+    if part1:
+        if not df1main is None:
+            an1.prepareDEG(df1main, df1other)
 
-    an1.preparePerBatchCase(exprCutoff=exprCutoff1)
-    an1.prepareBootstrapExperiments(parallel=parallelBootstrap)
+        an1.preparePerBatchCase(exprCutoff=exprCutoff1)
+        an1.prepareBootstrapExperiments(parallel=parallelBootstrap)
 
-    if perEachOtherCase:
-        if not df2main is None:
-            an2.prepareDEG(df2main, df2other)
+        if perEachOtherCase:
+            if not df2main is None:
+                an2.prepareDEG(df2main, df2other)
 
-        an2.preparePerBatchCase(exprCutoff=exprCutoff2)
-        an2.prepareBootstrapExperiments(parallel=parallelBootstrap)
+            an2.preparePerBatchCase(exprCutoff=exprCutoff2)
+            an2.prepareBootstrapExperiments(parallel=parallelBootstrap)
 
-    an1.analyzeBootstrapExperiments()
-
-    if perEachOtherCase:
-        an2.analyzeBootstrapExperiments()
+    if part2:
         an1.analyzeBootstrapExperiments()
-            
-    an1.reanalyzeMain()
-    an1.analyzeCombinationVariant('Avg combo3avgs')
-    an1.analyzeCombinationVariant('Avg combo4avgs')
-    an1.bootstrapMaxpeakPlot('Avg combo3avgs')
-    an1.bootstrapMaxpeakPlot('Avg combo4avgs')
-    an1.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=15, nE=15, fcutoff=0.5, width=50)
-    an1.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=15, nE=15, fcutoff=0.5, width=50)
-    an1.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=20)
-    an1.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=20)
 
-    if perEachOtherCase:
-        an2.reanalyzeMain()
-        an2.analyzeCombinationVariant('Avg combo3avgs')
-        an2.analyzeCombinationVariant('Avg combo4avgs')
-        an2.bootstrapMaxpeakPlot('Avg combo3avgs')
-        an2.bootstrapMaxpeakPlot('Avg combo4avgs')
-        an2.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=15, nE=15, fcutoff=0.5, width=50)
-        an2.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=15, nE=15, fcutoff=0.5, width=50)
-        an2.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=10)
-        an2.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=20)
+        if perEachOtherCase:
+            an2.analyzeBootstrapExperiments()
+            an1.analyzeBootstrapExperiments()
+            
+        an1.reanalyzeMain()
+        an1.analyzeCombinationVariant('Avg combo3avgs')
+        an1.analyzeCombinationVariant('Avg combo4avgs')
+        an1.bootstrapMaxpeakPlot('Avg combo3avgs')
+        an1.bootstrapMaxpeakPlot('Avg combo4avgs')
+        an1.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=15, nE=15, fcutoff=0.5, width=50)
+        an1.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=15, nE=15, fcutoff=0.5, width=50)
+
+        if doScramble:
+            an1.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=20)
+            an1.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=20)
+
+        if perEachOtherCase:
+            an2.reanalyzeMain()
+            an2.analyzeCombinationVariant('Avg combo3avgs')
+            an2.analyzeCombinationVariant('Avg combo4avgs')
+            an2.bootstrapMaxpeakPlot('Avg combo3avgs')
+            an2.bootstrapMaxpeakPlot('Avg combo4avgs')
+            an2.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=15, nE=15, fcutoff=0.5, width=50)
+            an2.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=15, nE=15, fcutoff=0.5, width=50)
+
+            if doScramble:
+                an2.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=10)
+                an2.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=20)
 
     an1.generateAnalysisReport()
 

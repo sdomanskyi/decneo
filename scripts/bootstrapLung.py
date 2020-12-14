@@ -48,4 +48,4 @@ if __name__ == '__main__':
             '/mnt/research/piermarolab/Sergii/results/PanglaoDB_lung_mouse/', 
             '/mnt/research/piermarolab/Sergii/PanglaoDB_byAlona/PanglaoDB_byDCS_human/bootstrap/All/', 
             nCPUs=4 if platform.system()=="Windows" else 20, parallelBootstrap=True,
-            genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC23, exprCutoff1=0.05, perEachOtherCase=False)    
+            genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC22, exprCutoff1=0.05, perEachOtherCase=False)    

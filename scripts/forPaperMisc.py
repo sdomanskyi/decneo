@@ -23,8 +23,7 @@ if __name__ == '__main__':
         sT = time.time()
         Analysis(dir, dir + '', nCPUs=nCPUs).scramble(measures3, case='All', subDir='All/combo3/', N=10**2, M=10**6, getMax=True, maxSuff='x1000000_%s' % ind)
         print(np.round(time.time() - sT, 3))
-
-    
+ 
     # Re-calculate dendrogram randomization statistics
     if False:
         def run(dir, case):
@@ -153,7 +152,7 @@ if __name__ == '__main__':
     # Calculate Table S2
     if False:
         #wdir = 'd:/Projects/A_Endothelial/VS/Endothelial/results/'
-        #anMouse = Analysis(wdir + 'PanglaoDB_byDCS_mouse/', wdir + '', genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC23)
+        #anMouse = Analysis(wdir + 'PanglaoDB_byDCS_mouse/', wdir + '', genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC22)
         #anMouse.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=15, nE=15, fcutoff=0.5, width=50)
 
         df = pd.read_excel('d:/Projects/A_Endothelial/VS/Endothelial/results/for meeting 10 15 2020/Table 1 for paper - for corr.xlsx', sheet_name='Table 1', index_col=0, header=[0,1,2])

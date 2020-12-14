@@ -247,7 +247,16 @@ def getDistanceOfBatch(args):
         temp_genes = df_sample.index.intersection(genes)
         print(len(temp_genes), end=' ', flush=True)
 
-        measure = cdist(df_sample.loc[temp_genes].values, df_sample.values, metric=metric).T
+        if metric == 'spearman':
+            # The Spearman correlation distance is defined as "1. -  Spearman correlation coefficient".
+            # The Spearman correlation coefficient is defined as the Pearson correlation coefficient between the ranks of variables.
+            # Using specialized function "scipy.stats.spearmanr" is not recommended, since it consumes more than 10x memory and 2x time.
+            # i.e. this is not efficient:
+            # measure = 1. - scipy.stats.spearmanr(df_sample.loc[temp_genes].values, df_sample.values, axis=1).correlation[-len(df_sample.values):, :len(temp_genes)]
+
+            measure = cdist(df_sample.loc[temp_genes].apply(lambda s: pd.Series(index=s.index, data=scipy.stats.rankdata(s.values)), axis=1), df_sample.apply(lambda s: pd.Series(index=s.index, data=scipy.stats.rankdata(s.values)), axis=1), metric='correlation').T
+        else:
+            measure = cdist(df_sample.loc[temp_genes].values, df_sample.values, metric=metric).T
 
         se_batch_corr = pd.DataFrame(measure, index=df_sample.index, columns=temp_genes).stack().reorder_levels([1, 0]).sort_index()
         se_batch_corr = pd.concat([se_batch_corr], keys=[batch], axis=1, sort=False)

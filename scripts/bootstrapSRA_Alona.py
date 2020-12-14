@@ -71,7 +71,7 @@ if __name__ == '__main__':
         for (tissue, species, SRA), SRSs in cases.iteritems():
             print('\n', tissue, species, SRA, len(SRSs), flush=True)
 
-            args = dict(genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC23, nCPUs=4 if platform.system()=="Windows" else 10, panels=['combo3avgs', 'combo4avgs', 'fraction', 'binomial', 'markers', 'top50'], nBootstrap=100, perEachOtherCase=False)
+            args = dict(genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC22, nCPUs=4 if platform.system()=="Windows" else 10, panels=['combo3avgs', 'combo4avgs', 'fraction', 'binomial', 'markers', 'top50'], nBootstrap=100, perEachOtherCase=False)
 
             allPanglaoDBmouse = '/mnt/research/piermarolab/Sergii/PanglaoDB_byAlona/PanglaoDB_byDCS_mouse/bootstrap/All/'
             allPanglaoDBhuman = '/mnt/research/piermarolab/Sergii/PanglaoDB_byAlona/PanglaoDB_byDCS_human/bootstrap/All/'

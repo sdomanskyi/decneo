@@ -16,7 +16,7 @@ g16 = ['CD3D','CD27','CD28','CD82','ICOS','CD226','TNFRSF18','TNFRSF9', # stimul
        'CTLA4','PDCD1','LAG3','BTLA','HAVCR2','VSIR','TIGIT','CD96']    # inhibitors
 
 # Known endothelial cells inhibitors and stimulators
-gEC23 = ['KDR','FLT1','FLT4','NRP1','NRP2','FGFR1','FGFR2','FGFR3','CXCR2','ROBO1',
+gEC22 = ['KDR','FLT1','FLT4','NRP1','NRP2','FGFR1','FGFR2','FGFR3','CXCR2','ROBO1',
          'ROBO4','ENG','PDGFRA','PDGFRB','TEK','KIT','MET','CLEC14A', # stimulators
          'CD36','CD47','VLDLR','PLXND1'] # inhibitors # on 08/24/2020 removed 'PNPLA2', due to low evidence that 'PNPLA2' is a receptor
 
@@ -28,8 +28,8 @@ gAbove50_PanglaoHuman = ['ESAM','RAMP2','PECAM1','CLEC14A','ADGRL4','ADGRF5','PT
 
 pubMedAngiogenesisHits = {'KDR': 1853, 'FLT1': 681, 'PDGFRB': 546, 'NRP1': 237, 'TEK': 196, 'EPHB4': 173, 'ACVRL1': 153, 'FLT4': 120, 'EPHA2': 116, 'TIE1': 114, 'PECAM1': 100, 'NRP2': 100, 'APLNR': 100, 'ROBO4': 69, 'ACKR3': 69, 'S1PR1': 67, 'ROBO1': 67, 'LYVE1': 62, 'CDH5': 48, 'ADGRB1': 46, 'UNC5B': 43, 'FZD4': 41, 'CD248': 38, 'PLXND1': 31, 'PLXNB1': 29, 'PROKR1': 27, 'ITGAV': 23, 'CLEC14A': 22, 'PROKR2': 20, 'S1PR3': 20, 'CD93': 19, 'PLXNA1': 14, 'ADGRA2': 14, 'ADGRB3': 14, 'STAB1': 13, 'OGFR': 11, 'ADGRB2': 9, 'PTPRB': 7, 'S1PR5': 7, 'ADGRL4': 6, 'S1PR4': 4, 'GPR182': 3, 'PLXNB3': 3, 'PLXNC1': 3}
 
-gECs = gEC23[:18]
-gECi = gEC23[18:]
+gECs = gEC22[:18]
+gECi = gEC22[18:]
 
 # Receptors
 receptorsListHugo_2555 = np.loadtxt(os.path.join(cwd, 'geneLists/receptorsListHugo_2555.txt'), dtype=str).tolist()

@@ -57,8 +57,57 @@ if __name__ == '__main__':
     else:
         wdir = '/mnt/research/piermarolab/Sergii/results/'
 
-    process(*prepareInputData_human_Choroid_remapped(), *(None, None),
-            wdir + 'choroid Voigt remapped test/', wdir + 'PanglaoDB_byDCS_mouse/bootstrap/All/', 
-            nCPUs=4 if platform.system()=="Windows" else 20, parallelBootstrap=True,
-            genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC23, exprCutoff1=0.01, perEachOtherCase=False,
-            nBootstrap=10)
+    #process(*prepareInputData_human_Choroid_remapped(), *(None, None),
+    #        wdir + 'choroid Voigt remapped test 10/', wdir + 'PanglaoDB_byDCS_mouse/bootstrap/All/', 
+    #        nCPUs=4 if platform.system()=="Windows" else 8, parallelBootstrap=True,
+    #        genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC22, exprCutoff1=0.01, perEachOtherCase=False,
+    #        nBootstrap=10, dendrogramMetric = 'euclidean', dendrogramLinkageMethod = 'average')
+
+    if False:
+        process(*(None, None), *(None, None),
+                wdir + 'choroid Voigt remapped test 10/', wdir + 'PanglaoDB_byDCS_mouse/bootstrap/All/', 
+                nCPUs=4 if platform.system()=="Windows" else 8, parallelBootstrap=True,
+                genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC22, exprCutoff1=0.01, perEachOtherCase=False,
+                nBootstrap=10, majorMetric='spearman', dendrogramMetric = 'euclidean', dendrogramLinkageMethod = 'average')
+        
+    if True:
+        #print(pd.read_hdf('/mnt/research/piermarolab/Sergii/results/choroid Voigt remapped test 10/byBatches/metricsFile.h5', key='spearman'))
+        #print(pd.read_hdf('/mnt/research/piermarolab/Sergii/results/choroid Voigt remapped test 10/byBatches/metricsFile.h5', key='correlation'))
+        #exit()
+
+        Analysis(workingDir=wdir + 'choroid Voigt remapped test 10/', otherCaseDir=wdir + 'PanglaoDB_byDCS_mouse/bootstrap/All/', genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC22, panels=['combo3avgs', 'combo4avgs', 'fraction', 'binomial', 'markers', 'top50'], nCPUs=2, perEachOtherCase=False, nBootstrap=10, majorMetric='spearman', dendrogramMetric='euclidean', dendrogramLinkageMethod='ward').reanalyzeMain()
+
+    if False:
+        np.random.seed(0)
+        m, n, k = 15000, 5000, 500
+        df_sample = pd.DataFrame(index=['Gene %s' % i for i in range(m)], columns=['Cell %s' % i for i in range(n)], data=np.random.rand(m, n))
+        df_sample.iloc[0] += 3. * df_sample.iloc[1]
+        df_sample.iloc[2] += 5. * df_sample.iloc[-10]
+        print(df_sample.shape)
+
+        temp_genes = pd.Index(['Gene %s' % i for i in range(k)])
+
+        #input('*')
+        sT = time.time()
+        measure = cdist(df_sample.loc[temp_genes].apply(lambda s: pd.Series(index=s.index, data=scipy.stats.rankdata(s.values)), axis=1),
+                       df_sample.apply(lambda s: pd.Series(index=s.index, data=scipy.stats.rankdata(s.values)), axis=1),
+                       metric='correlation').T
+        df_measure = pd.DataFrame(data=measure, index=df_sample.index, columns=temp_genes)
+        print(df_measure.round(6))
+        print('**', time.time() - sT)
+
+        #input('*')
+        sT = time.time()
+        measure = 1. - scipy.stats.spearmanr(df_sample.loc[temp_genes].values, df_sample.values, axis=1).correlation[-len(df_sample.values):, :len(temp_genes)]
+        df_measureL = pd.DataFrame(data=measure, index=df_sample.index, columns=temp_genes)
+        print(df_measureL.round(6))
+        print('**', time.time() - sT)
+
+        print('isGood:', ((df_measure.values - df_measureL.values) < 10**-8).all())
+
+        #input('**')
+        sT = time.time()
+        measure = cdist(df_sample.loc[temp_genes].values, df_sample.values, metric='correlation').T
+        df_measure = pd.DataFrame(data=measure, index=df_sample.index, columns=temp_genes)
+        print(df_measure)
+        print('***', time.time() - sT)
