@@ -4,7 +4,7 @@ from decneo.analysisPipeline import Analysis
 if __name__ == '__main__':
 
     # II. Re-calculate dendrogram randomization statistics
-    if True:
+    if False:
         measures3 = ['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction']
 
         if platform.system() == "Windows":
@@ -116,31 +116,83 @@ if __name__ == '__main__':
 
         writer.save()
 
-    # Logistic Regression and markers localization
-    if False:
-        df = pd.read_excel('d:/Projects/A_Endothelial/VS/Endothelial/results/PanglaoDB_byDCS_mouse/bootstrap/All/dendrogram-heatmap-correlation-data.xlsx', index_col=0, header=0)[['Markers']]
-        df['Distance'] = np.abs(np.arange(len(df.index.values)) - np.where(df.index.values=='FLT1')[0])
-        df = df.sort_values(by='Distance')
-        print(df)
+    # Markers localization p-value calculation
+    if True:
+        df_in = pd.read_excel('d:/Projects/A_Endothelial/VS/Endothelial/results/PanglaoDB_byDCS_mouse_correlation/bootstrap/All/dendrogram-heatmap-correlation-data.xlsx', index_col=0, header=0)[['Markers']]
 
-        from sklearn.linear_model import LogisticRegression
-        from sklearn.metrics import log_loss
+        print('Number of receptors:', len(df_in))
 
-        data = df['Distance'].values[:, None]
-        labels = df['Markers'].values
+        for gene in ['KDR', 'FLT1']:
+            print('\n\n', gene, ':')
 
-        AUC_ROC = roc_auc_score(~labels, data)
-        print('AUC_ROC:', AUC_ROC)
+            df = df_in.copy()
+            df['Distance'] = np.abs(np.arange(len(df.index.values)) - np.where(df.index.values==gene)[0])
 
-        clf = LogisticRegression(random_state=0).fit(data, labels)
-        clf.fit(data, labels)
-        alt_log_likelihood = -log_loss(labels, clf.predict_proba(data), normalize=False)
+            data = df['Distance'].values[:, None]
+            labels = df['Markers'].values
 
-        null_prob = sum(labels) / float(labels.shape[0]) * np.ones(labels.shape)
-        null_log_likelihood = -log_loss(labels, null_prob, normalize=False)
- 
-        p_value = scipy.stats.chi2.sf(2 * (alt_log_likelihood - null_log_likelihood), data.shape[1])
-        print(p_value)
+            if True:
+                from rpy2.robjects import r as R
+                from rpy2.robjects import IntVector, FloatVector, DataFrame
+
+                try:
+                    from rpy2.robjects.packages import importr
+                    utils = importr('dplyr')
+                    utils = importr('gravity')
+                except Exception as exception:
+                    print(exception)
+                    import rpy2.robjects.packages as rpackages
+                    utils = rpackages.importr('utils')
+                    utils = rpackages.importr('gravity')
+                    utils.chooseCRANmirror(ind=1)
+                    utils.install_packages('dplyr')
+                    utils.install_packages('gravity')
+                finally:
+                    from rpy2.robjects.packages import importr
+                    utils = importr('dplyr')
+                    utils = importr('gravity')
+
+                dataf = DataFrame({'label': IntVector(tuple(labels)), 'distance': FloatVector(tuple(data.T[0]))})
+                fit = R('function(x) ppml(dependent_variable="label", distance="distance", additional_regressors=NULL, robust=TRUE, data=x)')(dataf)
+                #print(fit)
+
+                # Deviance is -2.*log_likelihood
+                altDeviance = list(fit[9].items())[0][1]
+                nullDeviance = list(fit[11].items())[0][1]
+                p_value = scipy.stats.chi2.sf(nullDeviance - altDeviance, 1)
+                print('Poisson pseudo-maximum likelihood estimation (PPML) by J.M.C. Santos Silva & Silvana Tenreyro, 2006.')
+                print('Implemented in R in "gravity: Estimation Methods for Gravity Models" at:')
+                print('https://rdrr.io/cran/gravity/man/ppml.html')
+                print('Robust PPML based (a.k.a. QMLE) deviances and their difference test (chi2 p-value):\n\t', 
+                      'Null deviance:\t', np.round(nullDeviance, 1), '\n\t',
+                      'Alternative deviance:\t', np.round(altDeviance, 1), '\n\t',
+                      'p-value:\t', '%.1e' % p_value, '\n')
+
+            if True:
+                from sklearn.linear_model import LogisticRegression
+                from sklearn.metrics import log_loss
+                clf = LogisticRegression(random_state=0).fit(data, labels)
+                clf.fit(data, labels)
+                prprob = clf.predict_proba(data)
+                alt_log_likelihood = -log_loss(labels, prprob, normalize=False)
+                null_prob = sum(labels) / float(labels.shape[0]) * np.ones(labels.shape)
+                null_log_likelihood = -log_loss(labels, null_prob, normalize=False)
+                altDevianceLogit = -2.*alt_log_likelihood
+                nullDevianceLogit = -2.*null_log_likelihood
+                p_value_logit = scipy.stats.chi2.sf(nullDevianceLogit - altDevianceLogit, 1)
+                print('Previously I used:')
+                print('Logistic regression based Deviances and their difference test (chi2 p-value):\n\t', 
+                      'Null deviance:\t', np.round(nullDevianceLogit, 1), '\n\t',
+                      'Alternative deviance:\t', np.round(altDevianceLogit, 1), '\n\t',
+                      'p-value:\t', '%.1e' % p_value_logit, '\n')
+
+                AUC_ROC = roc_auc_score(~labels, data)
+                print('AUC_ROC:', np.round(AUC_ROC, 2))
+
+            if False:
+                from statsmodels.graphics.gofplots import qqplot
+                qqplot(prprob.T[0])
+                plt.show()
 
     # Hypergeometric function for markers in main peak
     if False:
