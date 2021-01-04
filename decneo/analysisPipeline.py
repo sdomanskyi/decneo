@@ -167,6 +167,8 @@ class Analysis():
             prepareDEG(dfa, dfb)
         '''
     
+        dfb = dfb.reindex(dfa.index).fillna(0.)
+
         nOriginalBatches = len(np.unique(dfa.columns.get_level_values('batch').values))
         if nOriginalBatches < self.minBatches:
             dfa.columns = pd.MultiIndex.from_arrays([np.random.permutation(np.hstack([np.array([str(i)]*len(v), dtype=str) for i, v in enumerate(np.array_split(dfa.columns.get_level_values('batch').values, self.pseudoBatches))])), dfa.columns.get_level_values('cell')], names=['batch', 'cell'])
@@ -181,28 +183,31 @@ class Analysis():
         batches = []
         for batch in np.unique(dfa.columns.get_level_values('batch').values):
 
-            df_temp_a = dfa.xs(batch, level='batch', axis=1, drop_level=False)
-            df_temp_b = dfb.xs(batch, level='batch', axis=1, drop_level=False)
+            try:
+                df_temp_a = dfa.xs(batch, level='batch', axis=1, drop_level=False)
+                df_temp_b = dfb.xs(batch, level='batch', axis=1, drop_level=False)
 
-            if self.methodForDEG == 'ttest':
-                ttest = scipy.stats.ttest_ind(df_temp_a.values, df_temp_b.values, axis=1)
-                df_test = pd.DataFrame(index=dfa.index, columns=['statistic', 'pvalue'])
-                df_test['statistic'] = ttest[0]
-                df_test['pvalue'] = ttest[1]                            
-                df_test = df_test.sort_values('statistic', ascending=False).dropna()
+                if self.methodForDEG == 'ttest':
+                    ttest = scipy.stats.ttest_ind(df_temp_a.values, df_temp_b.values, axis=1)
+                    df_test = pd.DataFrame(index=dfa.index, columns=['statistic', 'pvalue'])
+                    df_test['statistic'] = ttest[0]
+                    df_test['pvalue'] = ttest[1]                            
+                    df_test = df_test.sort_values('statistic', ascending=False).dropna()
 
-            elif self.methodForDEG == 'mannwhitneyu':
-                df_temp_a = df_temp_a.apply(np.array, axis=1)
-                df_temp_b = df_temp_b.apply(np.array, axis=1)
-                df_temp = pd.concat([df_temp_a, df_temp_b], axis=1, sort=False)   
-                df_temp = df_temp.loc[(df_temp[0].apply(np.sum) + df_temp[1].apply(np.sum)) > 0]
-                df_test = df_temp.apply(lambda v: pd.Series(np.array(scipy.stats.mannwhitneyu(v[0], v[1]))), axis=1)
-                df_test.columns = ['statistic', 'pvalue']
-                df_test = df_test.sort_values('pvalue', ascending=True).dropna()
+                elif self.methodForDEG == 'mannwhitneyu':
+                    df_temp_a = df_temp_a.apply(np.array, axis=1)
+                    df_temp_b = df_temp_b.apply(np.array, axis=1)
+                    df_temp = pd.concat([df_temp_a, df_temp_b], axis=1, sort=False)   
+                    df_temp = df_temp.loc[(df_temp[0].apply(np.sum) + df_temp[1].apply(np.sum)) > 0]
+                    df_test = df_temp.apply(lambda v: pd.Series(np.array(scipy.stats.mannwhitneyu(v[0], v[1]))), axis=1)
+                    df_test.columns = ['statistic', 'pvalue']
+                    df_test = df_test.sort_values('pvalue', ascending=True).dropna()
                 
-            #print(df_test)
-            genes.append(df_test.loc[df_test['pvalue'] <= pvalueLimit]['statistic'].index.values)
-            batches.append(batch)
+                genes.append(df_test.loc[df_test['pvalue'] <= pvalueLimit]['statistic'].index.values)
+                batches.append(batch)
+
+            except Exception as exception:
+                print(exception)
 
         ugenes = []
         for i, v in enumerate(genes):
@@ -316,7 +321,7 @@ class Analysis():
             np.savetxt(os.path.join(self.bootstrapDir, saveSubDir, 'size.txt'), [df_fraction_temp.shape[0], se_count_temp.sum()], fmt='%i')
 
             if not df_ranks is None:
-                batches = np.loadtxt(os.path.join(self.bootstrapDir, saveSubDir, 'batches.txt'), dtype=str)
+                batches = np.loadtxt(os.path.join(self.bootstrapDir, saveSubDir, 'batches.txt'), dtype=str, delimiter='\t')
 
                 df_ranks_temp = df_ranks[df_ranks.columns.intersection(batches)]
                 df_ranks_temp.columns = df_ranks_temp.columns + '_' + np.array(range(len(df_ranks_temp.columns))).astype(str)
@@ -916,7 +921,7 @@ class Analysis():
         stimulators, inhibitors = self.knownRegulators, []
 
         if togglePublicationFigure:
-            toggleExportFigureData = False
+            toggleExportFigureData = True
 
         def calculateMajorMetricAndGeneStats(df_expr, saveDir, groupBatches, selGenes, exprCutoff):
 
@@ -1112,7 +1117,13 @@ class Analysis():
 
             def addHeatmap(fig, dataArgs, coords, adjustText = adjustText, fontsize = 5):
 
-                M = dataArgs['M'] 
+                plottingMajorMetricOfSelected = False
+                
+                if plottingMajorMetricOfSelected:
+                    M = dataArgs['majorMetricOfSelected']
+                else:
+                    M = dataArgs['M'] 
+
                 order = dataArgs['order'] 
                 genes = dataArgs['genes'] 
                 locations = dataArgs['locations'] 
@@ -1122,13 +1133,21 @@ class Analysis():
                 clusterBoundaries =  dataArgs['clusterBoundaries']
                 clusterCenters =  dataArgs['clusterCenters']
 
-                ax = fig.add_axes(coords, frame_on=False)
+                ax = fig.add_axes(coords, frame_on=True)
 
                 masked_M = np.ma.array(M, mask=np.isnan(M))
-                cmap = plt.cm.Greens_r
-                cmap.set_bad('red')
 
-                im = ax.imshow(masked_M, cmap=cmap, aspect='auto', interpolation='None', extent=(-0.5, M.shape[0] - 0.5, M.shape[1] - 0.5, -0.5))
+                if plottingMajorMetricOfSelected:
+                    cmap = plt.cm.bwr
+                    cmap.set_bad('grey')
+                    vmin, vmax = -1, 1
+                else:
+                    #cmap = plt.cm.Greens_r
+                    cmap = plt.cm.bwr
+                    cmap.set_bad('red')
+                    vmin, vmax = None, None
+
+                im = ax.imshow(masked_M, cmap=cmap, aspect='auto', vmin=vmin, vmax=vmax, interpolation='None', extent=(-0.5, M.shape[0] - 0.5, M.shape[1] - 0.5, -0.5))
 
                 xlim = ax.get_xlim()
                 ylim = ax.get_ylim()
@@ -1151,7 +1170,7 @@ class Analysis():
                     ax.set_xticks([])
 
                     if adjustText:
-                        adjust_text(texts, va='top', ha='center', autoalign='x', lim=400, only_move={'text':'x'})
+                        adjust_text(texts, va='top', ha='center', autoalign='x', lim=400, only_move={'text':'x'}, force_text=(1.05*markersLabelsRepelForce, 0.5))
 
                     v = ax.get_ylim()[0]
                     for text, opos in zip(texts, origPos):
@@ -1176,7 +1195,7 @@ class Analysis():
                     ax.set_yticks([])
 
                     if adjustText:
-                        adjust_text(texts, va='center', ha='right', autoalign='y', lim=400, only_move={'text':'y'})
+                        adjust_text(texts, va='center', ha='right', autoalign='y', lim=400, only_move={'text':'y'}, force_text=(1.05*markersLabelsRepelForce, 0.5))
 
                     v = -0.01 * ax.get_xlim()[1]
                     for text, opos in zip(texts, origPos):
@@ -1184,7 +1203,7 @@ class Analysis():
                         ax.plot([0., text._x], [opos, text._y], color=text._color, lw=0.5, clip_on=False)
 
                 # Clusters outline boxes
-                if True:
+                if not plottingMajorMetricOfSelected:
                     for cluster, position in zip(np.unique(clusters), clusterCenters):
                         ltext = ax.text(position, position, '#%s' % cluster, fontsize=fontsize, color='white', va='center', ha='center')
                         ltext.set_path_effects([path_effects.Stroke(linewidth=1., foreground='k'), path_effects.Normal()])
@@ -1488,6 +1507,12 @@ class Analysis():
                         ax.plot([clusterBoundaries[i] - 0.5]*2, [ylim[0], ylim[1]], '--', lw=0.5, color='k', clip_on=False)
 
                 ax.text(-0.01, 0.5, ylabel, fontsize=4, rotation=0, va='center', ha='right', transform=ax.transAxes)
+                
+                if togglePublicationFigure:
+                    if panel == 'combo3avgs':
+                        peaks = getGenesOfPeak(pd.Series(data/data.max()))
+                        bw = ax.get_xlim()[1]/len(clusters)
+                        ax.axvspan(min(peaks) - 0.5*bw, max(peaks) + 0.5*bw, facecolor='crimson', linewidth=0., zorder=-np.inf)
 
                 return ylabel, data, data_avg
 
@@ -1503,7 +1528,17 @@ class Analysis():
 
             if printStages:
                 print('\tCalculating %s metric of %s . . .' % (metric, self.majorMetric), end='\t', flush=True)
-            M = pdist(df.fillna(missingFillValue).values.T, metric=metric)
+
+            df = df.fillna(missingFillValue)
+
+            if True:
+                M = pdist(df.values.T, metric=metric)
+            else:
+                M = df.loc[df.columns].values
+                M = (M + M.T)/2.
+                np.fill_diagonal(M, 0.)
+                M = squareform(M)
+
             if printStages:
                 print('Done', flush=True)
 
@@ -1555,6 +1590,7 @@ class Analysis():
                 if toggleIncludeHeatmap:
                     if printStages:
                         print('\tPlotting heatmap . . .', end='\t', flush=True)
+                    dataArgs.update({'majorMetricOfSelected': 1. - df.loc[dataArgs['allGenes']][dataArgs['allGenes']].values})
                     addHeatmap(fig, dataArgs, [0.1, bottomBorder, 0.75, heatmapHeight])
                     if printStages:
                         print('Done', flush=True)
@@ -1737,7 +1773,7 @@ class Analysis():
         try:
             print('Re-analyzing %s-data case' % case, flush=True)
             
-            self.analyzeCase(None, toggleAdjustText=True, dpi=600, suffix=case, saveDir=os.path.join(self.bootstrapDir, '%s/' % case), printStages=True, toggleCalculateMajorMetric=False, toggleExportFigureData=True, toggleCalculateMeasures=False, externalPanelsData=dict(externalPanelsData, conservedGenes=pd.read_excel(os.path.join(self.bootstrapDir, case, 'comparison.xlsx'), index_col=1, header=0)['Inter-measures.T50_common_count']), **kwargs)
+            self.analyzeCase(None, toggleAdjustText=True, dpi=600, suffix=case, saveDir=os.path.join(self.bootstrapDir, '%s/' % case), printStages=True, toggleCalculateMajorMetric=False, toggleExportFigureData=True, toggleCalculateMeasures=True, externalPanelsData=dict(externalPanelsData, conservedGenes=pd.read_excel(os.path.join(self.bootstrapDir, case, 'comparison.xlsx'), index_col=1, header=0)['Inter-measures.T50_common_count']), **kwargs)
 
             shutil.copyfile(os.path.join(self.bootstrapDir, case, '%s dendrogram-heatmap-%s.png' % (case, self.majorMetric)), os.path.join(self.workingDir, 'results %s %s %s %s.png' % (case, self.majorMetric, self.dendrogramMetric, self.dendrogramLinkageMethod)))
             
@@ -2113,7 +2149,8 @@ class Analysis():
         
         saveDir = os.path.join(self.workingDir, 'results majorMetric=%s, dendrogramMetric=%s, linkageMethod=%s' % (self.majorMetric, self.dendrogramMetric, self.dendrogramLinkageMethod))
 
-        os.makedirs(saveDir)
+        if not os.path.exists(saveDir):
+            os.makedirs(saveDir)
 
         for file in os.listdir(self.workingDir):
             if file != 'data.h5' and not os.path.isdir(os.path.join(self.workingDir, file)):
@@ -2126,7 +2163,8 @@ class Analysis():
 
 def process(df1main, df1other, df2main, df2other, dir1, dir2, genesOfInterest = None, knownRegulators = None, nCPUs = 4,
             panels = ['fraction', 'binomial', 'top50', 'markers', 'combo3avgs', 'combo4avgs'], parallelBootstrap = False,
-            exprCutoff1 = 0.05, exprCutoff2 = 0.05, perEachOtherCase = True, doScramble = False, part1 = True, part2 = True, **kwargs):
+            exprCutoff1 = 0.05, exprCutoff2 = 0.05, perEachOtherCase = True, doScramble = False, part1 = True, part2 = True,
+            part3 = True, **kwargs):
 
     '''Main workflow programmed in two scenaria depending on parameter "perEachOtherCase".
 
@@ -2242,10 +2280,11 @@ def process(df1main, df1other, df2main, df2other, dir1, dir2, genesOfInterest = 
                 an2.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=10)
                 an2.scramble(['Markers', 'Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo4/', M=20)
 
-    an1.generateAnalysisReport()
+    if part3:
+        an1.generateAnalysisReport()
 
-    if perEachOtherCase:
-        an2.generateAnalysisReport()
+        if perEachOtherCase:
+            an2.generateAnalysisReport()
 
     if perEachOtherCase:
         return an1, an2

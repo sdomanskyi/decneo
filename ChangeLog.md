@@ -1,2 +1,2 @@
 
-0.0.1 Pre-release
+1.0.0 Release

@@ -3,6 +3,27 @@ from decneo.analysisPipeline import Analysis
 
 if __name__ == '__main__':
 
+    # Checking number og GO terms and terms-proteins annotations
+    if False:
+        import json 
+        with gzip.GzipFile('d:/Projects/A_Endothelial/VS/Endothelial/dev/geneLists/humanGeneOntAssoc.json.gz', 'r') as tempFile:
+            inputFile = json.loads(tempFile.read().decode('utf-8'))[1]
+
+        with gzip.open('d:/Projects/A_Endothelial/VS/Endothelial/dev/geneLists/goBasicObo.txt.gz', 'r') as tempFile:
+            inputFile = tempFile.read().decode().split('id: GO:')
+            terms = dict()
+            terms.update(dict(biological_process = [item for item in inputFile if 'namespace: biological_process' in item]))
+            terms.update(dict(cellular_component = [item for item in inputFile if 'namespace: cellular_component' in item]))
+            terms.update(dict(molecular_function = [item for item in inputFile if 'namespace: molecular_function' in item]))
+
+            total = 0
+            for key in terms.keys():
+                temp = len(terms[key])
+                print(key, '\t', temp, 'terms')
+                total += temp
+
+            print('Total terms:\t', total)
+
     # II. Re-calculate dendrogram randomization statistics
     if False:
         measures3 = ['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction']
@@ -117,7 +138,7 @@ if __name__ == '__main__':
         writer.save()
 
     # Markers localization p-value calculation
-    if True:
+    if False:
         df_in = pd.read_excel('d:/Projects/A_Endothelial/VS/Endothelial/results/PanglaoDB_byDCS_mouse_correlation/bootstrap/All/dendrogram-heatmap-correlation-data.xlsx', index_col=0, header=0)[['Markers']]
 
         print('Number of receptors:', len(df_in))
@@ -130,6 +151,9 @@ if __name__ == '__main__':
 
             data = df['Distance'].values[:, None]
             labels = df['Markers'].values
+
+            np.random.seed(0)
+            np.random.shuffle(labels)
 
             if True:
                 from rpy2.robjects import r as R
@@ -194,14 +218,7 @@ if __name__ == '__main__':
                 qqplot(prprob.T[0])
                 plt.show()
 
-    # Hypergeometric function for markers in main peak
-    if False:
-        rv = scipy.stats.hypergeom(898, 22, 38)
-
-        print(rv.pmf(10))        
-        print(rv.sf(9))        
-
-    # Calculate Table S2
+    # Calculate Table of correlation comparing methods
     if False:
         #wdir = 'd:/Projects/A_Endothelial/VS/Endothelial/results/'
         #anMouse = Analysis(wdir + 'PanglaoDB_byDCS_mouse/', wdir + '', genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC22)
@@ -215,3 +232,20 @@ if __name__ == '__main__':
         np.fill_diagonal(df_corr.values, np.nan)
         df_corr.to_excel('d:/Projects/A_Endothelial/VS/Endothelial/results/for meeting 10 15 2020/Corr of Table 1.xlsx')
         print(df_corr)
+
+    # Hypergeometric test
+    if True:
+        # Markers in main peak
+        print(scipy.stats.hypergeom(898, 22, 38).sf(10-1)) # 2.4e-09
+        
+        # Markers in main bootstrap frequency peak
+        print(scipy.stats.hypergeom(898, 22, 18).sf(7-1))  # 5.0e-08   
+        
+        # Overlap in split by SRA
+        print(scipy.stats.hypergeom(898, 21, 23).sf(17-1))  # 1.5e-27   
+        
+        # Overlap in split by SRS
+        print(scipy.stats.hypergeom(898, 26, 20).sf(16-1))  # 3.3e-24   
+        
+        # Overlap in 2nd validation and main
+        print(scipy.stats.hypergeom(1099, 18, 25).sf(16-1))  # 1.6e-27

@@ -46,13 +46,13 @@ def skip(app, what, name, obj, skip, options):
 # -- Project information -----------------------------------------------------
 
 project = 'DECNEO'
-copyright = '2020, S. Domanskyi, A. Hakansson, M. Meng, G. Paternostro, C. Piermarocchi'
-author = 'S. Domanskyi, A. Hakansson, M. Meng, G. Paternostro, C. Piermarocchi'
+copyright = '2020, S. Domanskyi, A. Hakansson, M. Meng, J. S. Graff Zivin, C. Piermarocchi, G. Paternostro, N. Ferrara'
+author = 'S. Domanskyi, A. Hakansson, M. Meng, J. S. Graff Zivin, C. Piermarocchi, G. Paternostro, N. Ferrara'
 
 # The short X.Y version
-version = '0.0.1'
+version = '1.0.0'
 # The full version, including alpha/beta/rc tags
-release = '0.0.1'
+release = '1.0.0'
 
 
 # -- General configuration ---------------------------------------------------
@@ -178,7 +178,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'decneo.tex', 'DECNEO Documentation', 'S. Domanskyi, A. Hakansson, M. Meng, G. Paternostro, C. Piermarocchi', 'manual'),
+    (master_doc, 'decneo.tex', 'DECNEO Documentation', 'S. Domanskyi, A. Hakansson, M. Meng, J. S. Graff Zivin, C. Piermarocchi, G. Paternostro, N. Ferrara', 'manual'),
 ]
 
 

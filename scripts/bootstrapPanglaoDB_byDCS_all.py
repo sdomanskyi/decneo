@@ -132,12 +132,22 @@ if __name__ == '__main__':
     # Spearman: Human part1->1hr, mouse part1a->1hr&222GB, mouse part1b->10hrs&180GB
     parameters = dict(nCPUs=4 if platform.system()=="Windows" else 20, parallelBootstrap=False,
                 PCNpath=os.path.join(os.path.dirname(__file__), 'data'), exprCutoff1=0.05, exprCutoff2=0.05, 
-                genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC22, perEachOtherCase=True, part1=False, part2=True,
+                genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC22, perEachOtherCase=True, part1=False, part2=False, part3=False,
                 majorMetric='correlation',                # (1) correlation    (2) spearman 
                 dendrogramMetric='euclidean',           # (1) euclidean    (2) correlation
                 dendrogramLinkageMethod='ward')       # (1) ward    (2) complete (3) average
 
     anHuman, anMouse = process(*(None, None), *(None, None), wdir + 'PanglaoDB_byDCS_human_%s/' % parameters['majorMetric'], wdir + 'PanglaoDB_byDCS_mouse_%s/' % parameters['majorMetric'], **parameters)
 
-    #anHuman.reanalyzeMain(togglePublicationFigure=True, markersLabelsRepelForce=1.25, includeClusterNumber=False)
-    #anMouse.reanalyzeMain(togglePublicationFigure=True, markersLabelsRepelForce=1.5, includeClusterNumber=False)
+
+    anHuman.compareTwoCases(wdir + 'PanglaoDB_byDCS_human_correlation/bootstrap/All/', 
+                            wdir + 'PanglaoDB_byDCS_mouse_correlation/bootstrap/All/', 
+                            name1='name1', name2='name2', 
+                            saveName=wdir + 'PanglaoDB_byDCS_human_correlation/bootstrap/All/comparison')
+    anMouse.compareTwoCases(wdir + 'PanglaoDB_byDCS_mouse_correlation/bootstrap/All/', 
+                            wdir + 'PanglaoDB_byDCS_human_correlation/bootstrap/All/', 
+                            name1='name1', name2='name2', 
+                            saveName=wdir + 'PanglaoDB_byDCS_mouse_correlation/bootstrap/All/comparison')
+
+    anMouse.reanalyzeMain(togglePublicationFigure=True, markersLabelsRepelForce=1.5, includeClusterNumber=False)
+    anHuman.reanalyzeMain(togglePublicationFigure=True, markersLabelsRepelForce=1.25, includeClusterNumber=False)
