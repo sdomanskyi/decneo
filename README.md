@@ -75,7 +75,7 @@ For examples refer to documentation.
 We have made an example execution file ```demo.py``` that shows how to use ``decneo``.
 
 Download file ``VoightChoroid4567RemappedData.h5`` (456.7 Mb) 
-from https://figshare.com/DECNEO/
+from https://doi.org/10.5281/zenodo.4419880
 
 > This file contains normalized gene expression of 27504 genes of 7996 endothelial cells from 
 > 8 batches, and 5704 non-endothelial cells from 8 batches. Genes that are not expressed in 
