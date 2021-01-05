@@ -11,3 +11,4 @@ sphinx-tabs
 h5py
 sklearn
 networkx
+xlrd>=1.0.0
