@@ -9,3 +9,5 @@ autodocsumm>=0.1.13
 adjustText>=0.7.3
 sphinx-tabs
 h5py
+sklearn
+networkx
