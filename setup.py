@@ -12,7 +12,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 setup(
     name='decneo',
     packages=find_packages(),
-    version='1.0.0',
+    version='1.0.1',
     description='Comberons from single cell transcriptomics in endothelial cells',
     long_description_content_type="text/markdown",
     long_description=long_description,

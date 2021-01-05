@@ -109,7 +109,7 @@ It will also output an analysis report detailing all results and figures.
   * - variability.xlsx
     - Holds mean, standard deviation, and covariance calculations 
 
-**Example of result figures using PangLao DB Endothelial Lung Datasets** 
+**Example of result figures using mouse PangLaoDB DCS-annotated endothelial cells** 
 
 .. thumbnail:: images/ExampleDendro.png
     :title: Example of combination plot
