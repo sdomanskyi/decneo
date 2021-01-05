@@ -9,9 +9,7 @@ In silico detection of transcriptional regulation genes from single cell transcr
    overview
    gettingStarted
    mainClass
-   commonFunctions
    dependency
-   genes
    data
    examples
    outputData

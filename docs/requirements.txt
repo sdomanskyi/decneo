@@ -8,3 +8,4 @@ sphinxcontrib-images>=0.9.1
 autodocsumm>=0.1.13
 adjustText>=0.7.3
 sphinx-tabs
+h5py
