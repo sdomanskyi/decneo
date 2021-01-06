@@ -178,7 +178,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'decneo.tex', 'DECNEO Documentation', 'S. Domanskyi, A. Hakansson, M. Meng, \newline J. S. Graff Zivin, C. Piermarocchi, \newline G. Paternostro, and N. Ferrara', 'manual'),
+    (master_doc, 'decneo.tex', 'DECNEO Documentation', 'S. Domanskyi \\and A. Hakansson \\and M. Meng \\and J. S. Graff Zivin \\and C. Piermarocchi \\and G. Paternostro \\and N. Ferrara', 'manual'),
 ]
 
 
