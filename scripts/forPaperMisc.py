@@ -3,6 +3,13 @@ from decneo.analysisPipeline import Analysis
 
 if __name__ == '__main__':
 
+    # Choroid. Dendrogram randomization statistics
+    if False:
+        sT = time.time()
+        dir = '/mnt/research/piermarolab/Sergii/results/choroid Voigt remapped/'
+        Analysis(dir, dir + '', nCPUs=100).scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], case='All', subDir='All/combo3/', N=10**2, M=10**6, getMax=True, maxSuff='x1000000_%s' % 0)
+        print(np.round(time.time() - sT, 3))
+
     # Checking number og GO terms and terms-proteins annotations
     if False:
         import json 
@@ -234,7 +241,7 @@ if __name__ == '__main__':
         print(df_corr)
 
     # Hypergeometric test
-    if True:
+    if False:
         # Markers in main peak
         print(scipy.stats.hypergeom(898, 22, 38).sf(10-1)) # 2.4e-09
         

@@ -184,7 +184,7 @@ def umap_SRAs(wdir):
 
 if __name__ == '__main__':
 
-    plot_analyze_SRAs('d:/Projects/A_Endothelial/VS/Endothelial/results/DCS_SRAs/', 'results_DCS_SRAs.h5')
+    plot_analyze_SRAs('d:/Projects/A_Endothelial/VS/Endothelial/results/DCS_SRAs_01_12_2021/', 'results_DCS_SRAs.h5')
     exit()
 
     wdir = 'd:/Projects/A_Endothelial/VS/Endothelial/results/for meeting 10 15 2020/'

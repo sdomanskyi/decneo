@@ -1477,6 +1477,14 @@ class Analysis():
                     except:
                         data = np.zeros(len(allGenes))
 
+                else:
+                    ylabel = panel
+                    try:
+                        data = externalPanelsData[panel]
+                        data = data.loc[~data.index.duplicated(keep='first')].reindex(allGenes).values
+                    except:
+                        data = np.zeros(len(allGenes))
+
                 ax.bar(range(len(clusters)), data, width=ax.get_xlim()[1]/len(clusters), color=tickLabelsColors)
 
                 data_avg = movingAverageCentered(np.nan_to_num(data), halfWindowSize)
@@ -1561,11 +1569,22 @@ class Analysis():
             panelHeight *= factor
             detla *= factor
 
+            heatmapHeight = (topBorder - bottomBorder - dendroHeight) - nPanels * (panelHeight + detla) - 0.05*factor
+
+            if not toggleIncludeHeatmap:
+                rescaleFactor = 1. - heatmapHeight
+                figureSize = figureSize[0], figureSize[1] * rescaleFactor
+                heatmapHeight = 0.
+                topBorder = 1. - (1. - topBorder) / rescaleFactor
+                dendroHeight /= rescaleFactor
+                panelHeight /= rescaleFactor
+                detla /= rescaleFactor
+                bottomBorder /= rescaleFactor
+
             fig = plt.figure(figsize=figureSize)
 
             dataArgs = addDendro(fig, df.columns, M, [0.1, topBorder-dendroHeight, 0.75, dendroHeight], metric=metric, linkageMethod=linkageMethod)
 
-            heatmapHeight = (topBorder - bottomBorder - dendroHeight) - nPanels * (panelHeight + detla) - 0.05*factor
             if nPanels > 0:
                 if printStages:
                     print('\tPlotting bar panels . . .', end='\t', flush=True)
