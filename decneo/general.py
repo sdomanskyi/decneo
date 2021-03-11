@@ -16,6 +16,7 @@ import matplotlib
 from matplotlib import cm
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as path_effects
+import matplotlib.lines as lines
 
 #import plotly.graph_objects as go
 #import plotly.figure_factory as ff

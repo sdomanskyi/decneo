@@ -573,10 +573,14 @@ class Analysis():
                 print(exception)
                 pass
 
-        dfs = pd.concat(dfs, axis=0, sort=False)
-        print(dfs)
+        try:
+            dfs = pd.concat(dfs, axis=0, sort=False)
+            print(dfs)
 
-        dfs.to_hdf(self.dendroDataName, key='df', mode='a', complevel=4, complib='zlib')
+            dfs.to_hdf(self.dendroDataName, key='df', mode='a', complevel=4, complib='zlib')
+        except Exception as exception:
+            print(exception)
+            pass
 
         return
 
@@ -1553,9 +1557,9 @@ class Analysis():
             nPanels = len(self.panels)
             dendroHeight = 0.10
             panelHeight = 0.022
-            detla = 0.01
+            delta = 0.01
 
-            vsum = nPanels*(panelHeight + detla) + dendroHeight + 0.8
+            vsum = nPanels*(panelHeight + delta) + dendroHeight + 0.8
 
             if toggleAdjustFigureHeight:
                 figureSize = (figureSize[0],  figureSize[0] * (9./8.) * vsum)
@@ -1567,9 +1571,9 @@ class Analysis():
 
             dendroHeight *= factor
             panelHeight *= factor
-            detla *= factor
+            delta *= factor
 
-            heatmapHeight = (topBorder - bottomBorder - dendroHeight) - nPanels * (panelHeight + detla) - 0.05*factor
+            heatmapHeight = (topBorder - bottomBorder - dendroHeight) - nPanels * (panelHeight + delta) - 0.05*factor
 
             if not toggleIncludeHeatmap:
                 rescaleFactor = 1. - heatmapHeight
@@ -1578,7 +1582,7 @@ class Analysis():
                 topBorder = 1. - (1. - topBorder) / rescaleFactor
                 dendroHeight /= rescaleFactor
                 panelHeight /= rescaleFactor
-                detla /= rescaleFactor
+                delta /= rescaleFactor
                 bottomBorder /= rescaleFactor
 
             fig = plt.figure(figsize=figureSize)
@@ -1591,7 +1595,13 @@ class Analysis():
                 panelsData = dict()
                 panelsDataNames = dict()
                 for ipanel, panel in enumerate(self.panels):
-                    panelName, data, data_avg = addBar(fig, dataArgs, panel, [0.1, 0.015*factor + bottomBorder + heatmapHeight + (len(self.panels) - ipanel - 1)*(panelHeight + detla), 0.75, panelHeight])
+                    coords = [0.1, 0.015*factor + bottomBorder + heatmapHeight + (len(self.panels) - ipanel - 1)*(panelHeight + delta), 0.75, panelHeight]
+
+                    if panel[-1] == '~':
+                        fig.add_artist(lines.Line2D([0, 0.875], [coords[1] - 0.5 * delta]*2, linewidth=0.75))
+                        panel = panel[:-1]
+
+                    panelName, data, data_avg = addBar(fig, dataArgs, panel, coords)
 
                     wname = panelName.replace('\n', ' ')
 
@@ -2275,12 +2285,14 @@ def process(df1main, df1other, df2main, df2other, dir1, dir2, genesOfInterest = 
             an1.analyzeBootstrapExperiments()
             
         an1.reanalyzeMain()
-        an1.analyzeCombinationVariant('Avg combo3avgs')
-        an1.analyzeCombinationVariant('Avg combo4avgs')
-        an1.bootstrapMaxpeakPlot('Avg combo3avgs')
-        an1.bootstrapMaxpeakPlot('Avg combo4avgs')
-        an1.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=15, nE=15, fcutoff=0.5, width=50)
-        an1.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=15, nE=15, fcutoff=0.5, width=50)
+
+        if an1.nBootstrap > 0:
+            an1.analyzeCombinationVariant('Avg combo3avgs')
+            an1.analyzeCombinationVariant('Avg combo4avgs')
+            an1.bootstrapMaxpeakPlot('Avg combo3avgs')
+            an1.bootstrapMaxpeakPlot('Avg combo4avgs')
+            an1.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=15, nE=15, fcutoff=0.5, width=50)
+            an1.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=15, nE=15, fcutoff=0.5, width=50)
 
         if doScramble:
             an1.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=20)
@@ -2288,12 +2300,14 @@ def process(df1main, df1other, df2main, df2other, dir1, dir2, genesOfInterest = 
 
         if perEachOtherCase:
             an2.reanalyzeMain()
-            an2.analyzeCombinationVariant('Avg combo3avgs')
-            an2.analyzeCombinationVariant('Avg combo4avgs')
-            an2.bootstrapMaxpeakPlot('Avg combo3avgs')
-            an2.bootstrapMaxpeakPlot('Avg combo4avgs')
-            an2.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=15, nE=15, fcutoff=0.5, width=50)
-            an2.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=15, nE=15, fcutoff=0.5, width=50)
+
+            if an2.nBootstrap > 0:
+                an2.analyzeCombinationVariant('Avg combo3avgs')
+                an2.analyzeCombinationVariant('Avg combo4avgs')
+                an2.bootstrapMaxpeakPlot('Avg combo3avgs')
+                an2.bootstrapMaxpeakPlot('Avg combo4avgs')
+                an2.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=15, nE=15, fcutoff=0.5, width=50)
+                an2.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=15, nE=15, fcutoff=0.5, width=50)
 
             if doScramble:
                 an2.scramble(['Binomial -log(pvalue)', 'Top50 overlap', 'Fraction'], subDir='combo3/', M=10)

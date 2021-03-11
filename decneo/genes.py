@@ -34,6 +34,10 @@ gECi = gEC22[18:]
 # Receptors
 receptorsListHugo_2555 = np.loadtxt(os.path.join(cwd, 'geneLists/receptorsListHugo_2555.txt'), dtype=str).tolist()
 
+# Ligands
+ligands_1777 = np.loadtxt(os.path.join(cwd, 'geneLists/ligands_1777.txt'), dtype=str).tolist()
+ligands_44 = np.loadtxt(os.path.join(cwd, 'geneLists/ligands_44.txt'), dtype=str).tolist()
+
 # Yamanaka factors
 OSKM = ['POU5F1', 'SOX2', 'KLF4', 'MYC'] # OCT4, KLF4, SOX2, c-Myc
 TFmarkers = OSKM + ['NANOG', 'GLIS1', 'NR5A2', 'SALL4'] # from 10.1152/physrev.00039.2017
