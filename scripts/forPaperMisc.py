@@ -145,7 +145,7 @@ if __name__ == '__main__':
         writer.save()
 
     # Markers localization p-value calculation
-    if False:
+    if True:
         df_in = pd.read_excel('d:/Projects/A_Endothelial/VS/Endothelial/results/PanglaoDB_byDCS_mouse_correlation/bootstrap/All/dendrogram-heatmap-correlation-data.xlsx', index_col=0, header=0)[['Markers']]
 
         print('Number of receptors:', len(df_in))
@@ -160,7 +160,7 @@ if __name__ == '__main__':
             labels = df['Markers'].values
 
             np.random.seed(0)
-            np.random.shuffle(labels)
+            #np.random.shuffle(labels)
 
             if True:
                 from rpy2.robjects import r as R

@@ -133,6 +133,7 @@ if __name__ == '__main__':
     parameters = dict(nCPUs=4 if platform.system()=="Windows" else 20, parallelBootstrap=False,
                 PCNpath=os.path.join(os.path.dirname(__file__), 'data'), exprCutoff1=0.05, exprCutoff2=0.05, 
                 genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC22, perEachOtherCase=True, part1=False, part2=False, part3=False,
+                panels = ['fraction', 'binomial', 'top50', 'combo3avgs'],
                 majorMetric='correlation',                # (1) correlation    (2) spearman 
                 dendrogramMetric='euclidean',           # (1) euclidean    (2) correlation
                 dendrogramLinkageMethod='ward')       # (1) ward    (2) complete (3) average
@@ -149,5 +150,7 @@ if __name__ == '__main__':
                             name1='name1', name2='name2', 
                             saveName=wdir + 'PanglaoDB_byDCS_mouse_correlation/bootstrap/All/comparison')
 
-    anMouse.reanalyzeMain(togglePublicationFigure=True, markersLabelsRepelForce=1.5, includeClusterNumber=False)
-    anHuman.reanalyzeMain(togglePublicationFigure=True, markersLabelsRepelForce=1.25, includeClusterNumber=False)
+    #anMouse.analyzeAllPeaksOfCombinationVariant('Avg combo3avgs', nG=15, nE=15, fcutoff=0.5, width=50)
+
+    anMouse.reanalyzeMain(togglePublicationFigure=True, markersLabelsRepelForce=1.05, includeClusterNumber=False, toggleIncludeHeatmap=True, toggleCalculateMeasures=False, toggleExportFigureData=False)
+    anHuman.reanalyzeMain(togglePublicationFigure=True, markersLabelsRepelForce=1.05, includeClusterNumber=False, toggleIncludeHeatmap=True, toggleCalculateMeasures=False, toggleExportFigureData=False)

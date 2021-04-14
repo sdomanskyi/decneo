@@ -164,7 +164,7 @@ def getGenesOfPeak(se, peak=None, heightCutoff = 0.5, maxDistance = None):
 
     return genes
 
-def getPeaks(se, threshold = 0.2, distance = 50, prominence = 0.05):
+def getPeaks(se, threshold = 0.2, distance = 50, prominence = 0.05, returnAllInfo = False):
 
     '''Find peak regions 
         
@@ -187,10 +187,14 @@ def getPeaks(se, threshold = 0.2, distance = 50, prominence = 0.05):
 
     se /= se.max()
 
-    peaks = scipy.signal.find_peaks(np.hstack([0, se.values, 0]), distance=distance, prominence=prominence)[0] - 1
+    allInfo = scipy.signal.find_peaks(np.hstack([0, se.values, 0]), distance=distance, prominence=prominence)
+    peaks = allInfo[0] - 1
     peaks = peaks[se[peaks] >= threshold]
 
-    return peaks
+    if returnAllInfo:
+        return peaks, allInfo
+    else:
+        return peaks
 
 def getDistanceOfBatch(args):
 
@@ -985,4 +989,92 @@ def makeBarplot(labels, saveDir, saveName):
 
     fig.savefig(os.path.join(saveDir, saveName + '.png'), dpi=300)
             
+    return
+
+def autoDetect1dGroups(se, halfWindowSize = 50, gaussianWidth = 15, **kwargs):
+
+    se2 = pd.Series(index=np.arange(len(se)), data=scipy.ndimage.gaussian_filter1d(movingAverageCentered(se.values, halfWindowSize), gaussianWidth))
+
+    kwargs.setdefault('threshold', 0.1)
+    kwargs.setdefault('prominence', 0.1)
+    kwargs.setdefault('distance', 100)
+
+    peaks = getPeaks(se2.copy(), **kwargs)
+
+    boundaries = []
+    for i, peak in enumerate(peaks):
+        a = 0 if i==0 else peaks[i-1]
+        if i==0:
+            boundaries.append([a, np.nan])
+        else:
+            if a==peak:
+                boundaries.append([a, np.nan])
+            else:
+                v = se2.iloc[a:peak].sort_values().head(1).reset_index().values[0].tolist()
+                boundaries.append([int(v[0]), v[1]])
+    boundaries.append([len(se)-1, np.nan])
+
+    peaksinfo = []
+    for i, peak in enumerate(peaks):
+        se_temp = se.iloc[boundaries[i][0]:boundaries[i+1][0]]
+        members = se_temp[se_temp==1].index.values.tolist()
+        height = np.round(se2[peak], 3)
+        prominence = np.round(se2[peak] - np.nanmax([boundaries[i][1], boundaries[i+1][1]]), 3)
+        peaksinfo.append([peak, height, prominence, members])
+        print(height, '\t', prominence, '\t', ', '.join(members))
+    print()
+
+    return peaksinfo
+
+def adjustTexts1D(texts, fig, ax, w = 'auto', direction = 'auto', maxIterations = 10**3, tolerance = 0.02):
+    
+    def get_text_position(text, ax):
+        x, y = text.get_position()
+        return text.get_transform().transform((ax.convert_xunits(x), ax.convert_yunits(y)))
+    
+    def set_text_position(text, x, y):
+        return text.set_position(text.get_transform().inverted().transform((x, y)))
+
+    extent = texts[0].get_window_extent(renderer=fig.canvas.get_renderer())
+    
+    if direction=='auto':
+        direction = 'y' if extent.width > extent.height else 'x'
+        
+    if w == 'auto':      
+        w = (extent.width if direction=='x' else extent.height) + 5
+    
+    orig_pos = [get_text_position(text, ax)[0 if direction=='x' else 1] for text in texts]
+    
+    for i, text in enumerate(texts):
+        x, y = get_text_position(text, ax)
+        set_text_position(text, x + i*w*(1 if direction=='x' else 0), y + i*w*(0 if direction=='x' else 1))
+    
+    objs = []
+    for i_iter in range(maxIterations):
+        curr_pos = [get_text_position(text, ax)[0 if direction=='x' else 1] for text in texts]
+        
+        obj = 0
+        for i, (opos, text) in enumerate(zip(orig_pos, texts)):
+            x, y = get_text_position(text, ax)
+            p, q = (y, x) if direction=='x' else (x, y)
+            
+            cx = curr_pos[np.argsort(np.abs(curr_pos - q))[1]]
+            ov, ovdel = max(0, w + min(q, cx) - max(q, cx)), max(0, w + min(q, cx+0.001) - max(q, cx+0.001))
+            
+            delta1 = 0.1*ov*np.sign(ovdel - ov)
+            delta2 = np.sign(q - opos) * np.abs(q - opos)/25.
+
+            delta = delta1 - delta2 * ((w-ov)/w)**2.5
+            
+            set_text_position(text, *((q + delta, p) if direction=='x' else (p, q + delta)))
+            
+            obj += 5.*ov + np.abs(q - opos)
+        objs.append(obj)
+        
+        try:
+            if abs(np.mean(objs[-20:]) - np.mean(objs[-40:-20])) < tolerance:
+                break
+        except:
+            pass
+        
     return

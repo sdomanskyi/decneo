@@ -27,6 +27,17 @@ def prepareInputData_human_Choroid_remapped(sample = None):
 
     df_one = df_all[one_index]
 
+    m = (df_one.loc['LIFR']>0).astype(float).groupby(level=0).mean()
+    print(m, m.mean())
+ 
+    m = (df_one.loc['KDR']>0).astype(float).groupby(level=0).mean()
+    print(m, m.mean())   
+
+    m = (df_one.loc['PECAM1']>0).astype(float).groupby(level=0).mean()
+    print(m, m.mean())
+
+    exit()
+
     if not sample is None:
         df_one = df_one.sample(n=sample, axis=1, replace=False)
 
@@ -56,6 +67,8 @@ if __name__ == '__main__':
         wdir = 'd:/Projects/A_Endothelial/VS/Endothelial/results/' 
     else:
         wdir = '/mnt/research/piermarolab/Sergii/results/'
+
+    prepareInputData_human_Choroid_remapped()
 
     #process(*prepareInputData_human_Choroid_remapped(), *(None, None),
     #        wdir + 'choroid Voigt remapped test 10/', wdir + 'PanglaoDB_byDCS_mouse/bootstrap/All/', 

@@ -924,8 +924,8 @@ class Analysis():
 
         stimulators, inhibitors = self.knownRegulators, []
 
-        if togglePublicationFigure:
-            toggleExportFigureData = True
+        #if togglePublicationFigure:
+        #    toggleExportFigureData = True
 
         def calculateMajorMetricAndGeneStats(df_expr, saveDir, groupBatches, selGenes, exprCutoff):
 
@@ -1033,7 +1033,7 @@ class Analysis():
 
                 self.panels += self.combinationPanels
 
-            def addDendro(fig, dataGenes, M, coords, metric = metric, linkageMethod = 'ward', linewidth = 0.25, adjustText = adjustText, fontsize = 5):
+            def addDendro(fig, dataGenes, M, coords, metric = metric, linkageMethod = 'ward', linewidth = 0.25, adjustText = adjustText, fontsize = 6):
 
                 genesSubset = list(stimulators) + list(inhibitors)
 
@@ -1088,9 +1088,11 @@ class Analysis():
                     ax.set_xticklabels([])
                         
                     if adjustText:
-                        adjust_text(texts, va='top', ha='center', autoalign='x', lim=400, only_move={'text':'x'}, force_text=(markersLabelsRepelForce, 0.5))
+                        adjustTexts1D(texts, fig, ax)
 
-                    v = 0.04 * ax.get_ylim()[1]
+                        #adjust_text(texts, va='top', ha='center', autoalign='x', lim=400, only_move={'text':'x'}, force_text=(markersLabelsRepelForce, 0.5))
+
+                    v = 0.05 * ax.get_ylim()[1]
                     for text, opos in zip(texts, origPos):
                         text._y = -v
                         ax.plot([text._x, opos], [text._y, 0.], color=text._color, lw=0.5, clip_on=False)
@@ -1119,7 +1121,7 @@ class Analysis():
                         'clusterBoundaries': clusterBoundaries / 10.,
                         'clusterCenters': clusterCenters / 10.}
 
-            def addHeatmap(fig, dataArgs, coords, adjustText = adjustText, fontsize = 5):
+            def addHeatmap(fig, dataArgs, coords, adjustText = adjustText, fontsize = 6):
 
                 plottingMajorMetricOfSelected = False
                 
@@ -1142,12 +1144,11 @@ class Analysis():
                 masked_M = np.ma.array(M, mask=np.isnan(M))
 
                 if plottingMajorMetricOfSelected:
-                    cmap = plt.cm.bwr
+                    cmap = copy.copy(plt.cm.bwr)
                     cmap.set_bad('grey')
                     vmin, vmax = -1, 1
                 else:
-                    #cmap = plt.cm.Greens_r
-                    cmap = plt.cm.bwr
+                    cmap = copy.copy(plt.cm.bwr) # Greens_r
                     cmap.set_bad('red')
                     vmin, vmax = None, None
 
@@ -1174,7 +1175,9 @@ class Analysis():
                     ax.set_xticks([])
 
                     if adjustText:
-                        adjust_text(texts, va='top', ha='center', autoalign='x', lim=400, only_move={'text':'x'}, force_text=(1.05*markersLabelsRepelForce, 0.5))
+                        adjustTexts1D(texts, fig, ax)
+
+                        #adjust_text(texts, va='top', ha='center', autoalign='x', lim=400, only_move={'text':'x'}, force_text=(1.05*markersLabelsRepelForce, 0.5))
 
                     v = ax.get_ylim()[0]
                     for text, opos in zip(texts, origPos):
@@ -1199,7 +1202,9 @@ class Analysis():
                     ax.set_yticks([])
 
                     if adjustText:
-                        adjust_text(texts, va='center', ha='right', autoalign='y', lim=400, only_move={'text':'y'}, force_text=(1.05*markersLabelsRepelForce, 0.5))
+                        adjustTexts1D([ele for ele in reversed(texts)], fig, ax)
+
+                        #adjust_text(texts, va='center', ha='right', autoalign='y', lim=400, only_move={'text':'y'}, force_text=(1.05*markersLabelsRepelForce, 0.5))
 
                     v = -0.01 * ax.get_xlim()[1]
                     for text, opos in zip(texts, origPos):
@@ -1458,7 +1463,7 @@ class Analysis():
 
                     if ylabel == 'combo3avgs':
                         if togglePublicationFigure:
-                            ylabel = 'Combination of 3'
+                            ylabel = 'Combination\nof measures' # 'Combination of 3'
                     elif ylabel == 'combo4avgs':
                         if togglePublicationFigure:
                             ylabel = 'Combination of 4'
@@ -1511,14 +1516,15 @@ class Analysis():
                 ax.set_yticks(yticks)
                 ax.set_yticklabels(yticks)
 
-                ax.tick_params(axis='y', labelsize=3.5, width=0.75, length=3)
+                ax.tick_params(axis='y', labelsize=4, width=0.75, length=3)
+                ax.yaxis.tick_right()
 
                 if showBoundaries:
                     ylim = ax.get_ylim()
                     for i in range(1, len(np.unique(clusters))):
                         ax.plot([clusterBoundaries[i] - 0.5]*2, [ylim[0], ylim[1]], '--', lw=0.5, color='k', clip_on=False)
 
-                ax.text(-0.01, 0.5, ylabel, fontsize=4, rotation=0, va='center', ha='right', transform=ax.transAxes)
+                ax.text(-0.01, 0.5, ylabel, fontsize=6.5, rotation=0, va='center', ha='right', transform=ax.transAxes)
                 
                 if togglePublicationFigure:
                     if panel == 'combo3avgs':
@@ -1556,7 +1562,7 @@ class Analysis():
 
             nPanels = len(self.panels)
             dendroHeight = 0.10
-            panelHeight = 0.022
+            panelHeight = 0.030 # 0.022
             delta = 0.01
 
             vsum = nPanels*(panelHeight + delta) + dendroHeight + 0.8
@@ -1799,10 +1805,22 @@ class Analysis():
             an.reanalyzeMain()
         '''
 
+        np.random.seed(42)
+
         try:
             print('Re-analyzing %s-data case' % case, flush=True)
+
+            kwargs.setdefault('toggleAdjustText', True)
+            kwargs.setdefault('dpi', 600)
+            kwargs.setdefault('suffix', case)
+            kwargs.setdefault('saveDir', os.path.join(self.bootstrapDir, '%s/' % case))
+            kwargs.setdefault('printStages', True)
+            kwargs.setdefault('toggleCalculateMajorMetric', False)
+            kwargs.setdefault('toggleExportFigureData', True)
+            kwargs.setdefault('toggleCalculateMeasures', True)
+            kwargs.setdefault('externalPanelsData', dict(externalPanelsData, conservedGenes=pd.read_excel(os.path.join(self.bootstrapDir, case, 'comparison.xlsx'), index_col=1, header=0)['Inter-measures.T50_common_count']))
             
-            self.analyzeCase(None, toggleAdjustText=True, dpi=600, suffix=case, saveDir=os.path.join(self.bootstrapDir, '%s/' % case), printStages=True, toggleCalculateMajorMetric=False, toggleExportFigureData=True, toggleCalculateMeasures=True, externalPanelsData=dict(externalPanelsData, conservedGenes=pd.read_excel(os.path.join(self.bootstrapDir, case, 'comparison.xlsx'), index_col=1, header=0)['Inter-measures.T50_common_count']), **kwargs)
+            self.analyzeCase(None, **kwargs)
 
             shutil.copyfile(os.path.join(self.bootstrapDir, case, '%s dendrogram-heatmap-%s.png' % (case, self.majorMetric)), os.path.join(self.workingDir, 'results %s %s %s %s.png' % (case, self.majorMetric, self.dendrogramMetric, self.dendrogramLinkageMethod)))
             
@@ -1897,7 +1915,9 @@ class Analysis():
                 self.reanalyzeMain(case=e, togglePublicationFigure=True, toggleIncludeHeatmap=False, markersLabelsRepelForce=1.5)
             
             if e == 'All':
-                se = pd.read_hdf(os.path.join(self.bootstrapDir, 'All', 'dendrogram-heatmap-%s-data.h5' % self.majorMetric), key='df_C')[variant]
+                se = pd.read_hdf(os.path.join(self.bootstrapDir, 'All', 'dendrogram-heatmap-%s-data.h5' % self.majorMetric), key='df_C')
+                #se = se[variant]
+                se = se['Avg Combination']
                 se.index.name = 'gene'
             else:
                 se = df.xs('species', level='species', axis=0).copy().xs(e, level='experiment')
@@ -1906,7 +1926,8 @@ class Analysis():
             ax.plot(range(len(se)), se.values, color='coral', linewidth=1.5, zorder=np.inf)
 
             if e == 'All':
-                listsDict, allgenes = getPeaksLists(pd.concat([se.to_frame().copy()], keys=['All'], names=['experiment'], axis=0, sort=False)[variant])
+                listsDict, allgenes = getPeaksLists(pd.concat([se.to_frame().copy()], keys=['All'], names=['experiment'], axis=0, sort=False)['Avg Combination'])
+                #listsDict, allgenes = getPeaksLists(pd.concat([se.to_frame().copy()], keys=['All'], names=['experiment'], axis=0, sort=False)[variant])
                 se_peakAssignments = pd.Series(listsDict).apply(pd.Series)
                 df_m_a = pd.DataFrame(index=allgenes, data=0, columns=se_peakAssignments.index)
                 for peak in df_m_a.columns:
@@ -1938,7 +1959,7 @@ class Analysis():
             ax.set_yticks(yticks)
             ax.set_yticklabels(yticks)
             ax.tick_params(axis='y', labelsize=8, width=0.75, length=3)
-            ax.text(-0.05, 0.5, 'Combination of 3', fontsize=8, rotation=90, va='center', ha='right', transform=ax.transAxes)
+            ax.text(-0.05, 0.5, 'Combination\nof measures', fontsize=10, rotation=90, va='center', ha='right', transform=ax.transAxes)
             ax.set_xlim([0, len(se)])
             ax.set_ylim([0, 0.03])
 
@@ -2073,7 +2094,7 @@ class Analysis():
                 heatdata = df_m.values * we.values[None, :]
                 ax = fig.add_axes([0.25, 0.25, 0.5, 0.5], frame_on=True)
                 #cmap = matplotlib.colors.LinearSegmentedColormap.from_list('WB', [(1, 1, 1), (0, 0, 0.5)], N=2)
-                cmap = plt.cm.jet_r
+                cmap = copy.copy(plt.cm.jet_r)
                 cmap.set_bad('white')
                 im = ax.imshow(np.ma.array(heatdata, mask=(heatdata==0.)), cmap=cmap, aspect='auto', interpolation='None', extent=(-0.5, df_m.shape[0] - 0.5, df_m.shape[1] - 0.5, -0.5), vmin=0., vmax=1.)
                 ax.set_xticklabels([])

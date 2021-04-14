@@ -3,12 +3,14 @@
 
 import os
 import sys
+import copy
 import shutil
 import numpy as np
 import pandas as pd
 import h5py
 import scipy.stats
 import scipy.signal
+import scipy.ndimage
 import scipy.io
 from scipy.spatial.distance import cdist, pdist, squareform
 import time
@@ -25,10 +27,10 @@ import matplotlib.lines as lines
 #from plotly.subplots import make_subplots
 
 from sklearn.cluster import AgglomerativeClustering, KMeans, SpectralCoclustering
-from sklearn.metrics import adjusted_rand_score, f1_score, roc_curve, auc, roc_auc_score, silhouette_samples, silhouette_score
+from sklearn.metrics import adjusted_rand_score, f1_score, roc_curve, auc, roc_auc_score, silhouette_samples, silhouette_score, log_loss
+from sklearn.linear_model import LogisticRegression
 from scipy.cluster import hierarchy
 from adjustText import adjust_text
-#from sknetwork.hierarchy import Paris, LouvainHierarchy
 import copy
 import networkx as nx
 import multiprocessing
