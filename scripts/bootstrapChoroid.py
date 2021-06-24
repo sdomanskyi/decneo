@@ -68,7 +68,7 @@ if __name__ == '__main__':
     else:
         wdir = '/mnt/research/piermarolab/Sergii/results/'
 
-    prepareInputData_human_Choroid_remapped()
+    #prepareInputData_human_Choroid_remapped()
 
     #process(*prepareInputData_human_Choroid_remapped(), *(None, None),
     #        wdir + 'choroid Voigt remapped test 10/', wdir + 'PanglaoDB_byDCS_mouse/bootstrap/All/', 
@@ -78,17 +78,15 @@ if __name__ == '__main__':
 
     if False:
         process(*(None, None), *(None, None),
-                wdir + 'choroid Voigt remapped test 10/', wdir + 'PanglaoDB_byDCS_mouse/bootstrap/All/', 
+                wdir + 'choroid Voigt remapped/', wdir + 'PanglaoDB_byDCS_mouse/bootstrap/All/', 
                 nCPUs=4 if platform.system()=="Windows" else 8, parallelBootstrap=True,
                 genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC22, exprCutoff1=0.01, perEachOtherCase=False,
                 nBootstrap=10, majorMetric='spearman', dendrogramMetric = 'euclidean', dendrogramLinkageMethod = 'average')
         
     if True:
-        #print(pd.read_hdf('/mnt/research/piermarolab/Sergii/results/choroid Voigt remapped test 10/byBatches/metricsFile.h5', key='spearman'))
-        #print(pd.read_hdf('/mnt/research/piermarolab/Sergii/results/choroid Voigt remapped test 10/byBatches/metricsFile.h5', key='correlation'))
-        #exit()
 
-        Analysis(workingDir=wdir + 'choroid Voigt remapped test 10/', otherCaseDir=wdir + 'PanglaoDB_byDCS_mouse/bootstrap/All/', genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC22, panels=['combo3avgs', 'combo4avgs', 'fraction', 'binomial', 'markers', 'top50'], nCPUs=2, perEachOtherCase=False, nBootstrap=10, majorMetric='spearman', dendrogramMetric='euclidean', dendrogramLinkageMethod='ward').reanalyzeMain()
+
+        Analysis(workingDir=wdir + 'choroid Voigt remapped/', otherCaseDir=wdir + 'PanglaoDB_byDCS_mouse/bootstrap/All/', genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC22, panels = ['fraction', 'binomial', 'top50', 'combo3avgs', 'max'], externalPanelsData=externalPanelsData).reanalyzeMain(togglePublicationFigure=True, includeClusterNumber=False, toggleIncludeHeatmap=False, toggleCalculateMeasures=False, toggleExportFigureData=False)
 
     if False:
         np.random.seed(0)

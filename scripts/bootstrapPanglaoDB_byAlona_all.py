@@ -189,17 +189,10 @@ if __name__ == '__main__':
     
     if True:
         kwargs = dict(genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC22, 
-                      panels=[
-                          'combo3avgs', 
-                          'combo4avgs', 
-                          'fraction', 
-                          'binomial', 
-                          'top50',
-                          'markers', 
-                          ], perEachOtherCase=True, PCNpath=os.path.join(os.path.dirname(__file__), 'data'))
-
-        anHuman = Analysis(workingDir=wdir + 'PanglaoDB_byDCS_human/', otherCaseDir=wdir + 'PanglaoDB_byDCS_mouse/', **kwargs)
-        anHuman.reanalyzeMain(togglePublicationFigure=True, toggleIncludeHeatmap=False, markersLabelsRepelForce=1.25, includeClusterNumber=False)
+                      panels=['fraction', 'binomial', 'top50', 'combo3avgs'], perEachOtherCase=True, PCNpath=os.path.join(os.path.dirname(__file__), 'data'))
 
         anMouse = Analysis(workingDir=wdir + 'PanglaoDB_byDCS_mouse/', otherCaseDir=wdir + 'PanglaoDB_byDCS_human/', **kwargs)
-        anMouse.reanalyzeMain(togglePublicationFigure=True, toggleIncludeHeatmap=False, markersLabelsRepelForce=1.5, includeClusterNumber=False)
+        anMouse.reanalyzeMain(togglePublicationFigure=True, includeClusterNumber=False, toggleIncludeHeatmap=False, toggleCalculateMeasures=False, toggleExportFigureData=False)
+
+        anHuman = Analysis(workingDir=wdir + 'PanglaoDB_byDCS_human/', otherCaseDir=wdir + 'PanglaoDB_byDCS_mouse/', **kwargs)
+        anHuman.reanalyzeMain(togglePublicationFigure=True, includeClusterNumber=False, toggleIncludeHeatmap=False, toggleCalculateMeasures=False, toggleExportFigureData=False)

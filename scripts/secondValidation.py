@@ -201,11 +201,12 @@ if __name__ == '__main__':
             dfshNon.to_hdf(wdir + 'secondValidationNonEC.h5', key='df_human', **phdf)
 
     # DECNEO bootstrap and analysis
-    if False:
+    if True:
         anMouse = process(*(None, None), *(None, None),
                         wdir + 'DECNEO analysis/', '/mnt/research/piermarolab/Sergii/results/PanglaoDB_byDCS_human_correlation/', 
                         nCPUs=4 if platform.system()=="Windows" else 20, parallelBootstrap=True,
                         genesOfInterest=receptorsListHugo_2555, knownRegulators=gEC22, perEachOtherCase=True,
+                        panels = ['fraction', 'binomial', 'top50', 'combo3avgs'],
                         nBootstrap=100, part1=False, part2=False, part3=False)[0]
 
         if False:
@@ -218,16 +219,18 @@ if __name__ == '__main__':
             anMouse.prepareDEG(dfa, dfb)
             anMouse.preparePerBatchCase(exprCutoff=0.05)
         
-        anMouse.prepareBootstrapExperiments(parallel=True)
-        anMouse.analyzeBootstrapExperiments()
-        anMouse.reanalyzeMain()
-        anMouse.analyzeCombinationVariant('Avg combo3avgs')
-        anMouse.analyzeCombinationVariant('Avg combo4avgs')
-        anMouse.reanalyzeMain()
-        anMouse.compareTwoCases(wdir + 'DECNEO analysis/bootstrap/All/', '/mnt/research/piermarolab/Sergii/results/PanglaoDB_byDCS_human_correlation/bootstrap/All/', saveName=wdir + 'DECNEO analysis/bootstrap/All/comparison')
-        anMouse.reanalyzeMain(togglePublicationFigure=True, markersLabelsRepelForce=1.5, includeClusterNumber=False)
+        if False:
+            anMouse.prepareBootstrapExperiments(parallel=True)
+            anMouse.analyzeBootstrapExperiments()
+            anMouse.reanalyzeMain()
+            anMouse.analyzeCombinationVariant('Avg combo3avgs')
+            anMouse.analyzeCombinationVariant('Avg combo4avgs')
+            anMouse.reanalyzeMain()
+            anMouse.compareTwoCases(wdir + 'DECNEO analysis/bootstrap/All/', '/mnt/research/piermarolab/Sergii/results/PanglaoDB_byDCS_human_correlation/bootstrap/All/', saveName=wdir + 'DECNEO analysis/bootstrap/All/comparison')
 
-    if True:
+        anMouse.reanalyzeMain(togglePublicationFigure=True, includeClusterNumber=False, toggleIncludeHeatmap=False, toggleCalculateMeasures=False, toggleExportFigureData=False)
+
+    if False:
         #dfa = pd.read_hdf(wdir + 'secondValidationEC.h5', key='df_mouse')
         #print(dfa, flush=True)
         #dfa.loc['KDR'].to_excel(wdir + 'KDR_EC.xlsx')

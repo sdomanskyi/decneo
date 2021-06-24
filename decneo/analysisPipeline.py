@@ -1818,7 +1818,9 @@ class Analysis():
             kwargs.setdefault('toggleCalculateMajorMetric', False)
             kwargs.setdefault('toggleExportFigureData', True)
             kwargs.setdefault('toggleCalculateMeasures', True)
-            kwargs.setdefault('externalPanelsData', dict(externalPanelsData, conservedGenes=pd.read_excel(os.path.join(self.bootstrapDir, case, 'comparison.xlsx'), index_col=1, header=0)['Inter-measures.T50_common_count']))
+
+            kwargs.setdefault('externalPanelsData', externalPanelsData)
+            kwargs['externalPanelsData'].setdefault('conservedGenes', pd.read_excel(os.path.join(self.bootstrapDir, case, 'comparison.xlsx'), index_col=1, header=0)['Inter-measures.T50_common_count'])
             
             self.analyzeCase(None, **kwargs)
 
@@ -1831,7 +1833,7 @@ class Analysis():
 
         return
 
-    def analyzeAllPeaksOfCombinationVariant(self, variant, nG = 8, nE = 30, fcutoff = 0.5, width = 50):
+    def analyzeAllPeaksOfCombinationVariant(self, variant, nG = 8, nE = 30, dcutoff = 0.5, fcutoff = 0.5, width = 50):
 
         '''Find all peaks and their frequency from the bootstrap experiments
 
@@ -1995,22 +1997,24 @@ class Analysis():
         for ci in df_m.index.levels[-1]:
             for cj in df_m.columns.levels[-1]:
                 df_temp = df_m.xs(ci, level='cluster', axis=0).xs(cj, level='cluster', axis=1)
-                m = df_temp.values.mean()
-                if m >= fcutoff:
+                if df_temp.values.mean() >= dcutoff:
                     resf[(ci, cj)] = df_temp.shape[1]
                     resh[(ci, cj)] = we[df_temp.columns].mean()
 
                     ndict[ci] = cleanListString(sorted(df_temp.index.values.tolist()))
 
         sef = pd.Series(resf)
-        print(sef)
         sed = pd.Series(index=sef.index, data=sef.groupby(level=0).sum().reindex(sef.droplevel(1).index).values)
-        seh = pd.Series(resh) * sef / sed
+        dff = pd.concat([pd.Series(resh), sef / sed], axis=1, keys=['h', 'w'], sort=False)
+        seh = dff.groupby(level=0).agg(lambda s: np.average(s, weights=dff.loc[s.index, 'w'])).h
+
+        #pd.Series(resf).to_excel(self.workingDir + 'resf %s.xlsx' % variant)
+        #pd.Series(resh).to_excel(self.workingDir + 'resh %s.xlsx' % variant)
 
         se = pd.Series(resf).groupby(level=0).sum()
         se.name = 'frequency'
         df = se.to_frame()
-        df['height'] = seh.groupby(level=0).mean()
+        df['height'] = seh
         df['genes'] = pd.Series(se.index).replace(ndict).values
         df['length'] = df['genes'].str.split(', ').map(len)
         df['frequency'] = np.zeros(len(df['frequency']))
@@ -2021,7 +2025,8 @@ class Analysis():
         for i, group in enumerate(df['genes'].values):
             group = group.split(', ')
             fractions = df_m.droplevel('cluster').loc[group].sum(axis=0) / len(group)
-            df.loc[df.index[i], 'frequency'] = len(fractions[fractions >= fcutoff]) / locnbootstap
+            uv = np.unique(fractions[fractions >= fcutoff].index.get_level_values(0).str.split('.', expand=True).get_level_values(0).values)
+            df.loc[df.index[i], 'frequency'] = len(uv) / locnbootstap
 
         df = df.sort_values(by='frequency', ascending=False)
         print(df)
@@ -2053,7 +2058,7 @@ class Analysis():
         if True:
             fig = plt.figure(figsize=(10, 10))
 
-            groupsColors = False
+            groupsColors = True
 
             # Genes dendrogram
             if True:
@@ -2101,6 +2106,11 @@ class Analysis():
                 ax.set_xticks([])
                 ax.set_yticklabels([])
                 ax.set_yticks([])
+
+            # Export heatmap data
+            if True:
+                print('Exporting all peaks heatmap', flush=True)
+                (df_m * we.values[None, :]).to_excel(self.workingDir + 'heatmap all peaks %s.xlsx' % variant)
             
             # Box annotations
             if False:
@@ -2145,6 +2155,73 @@ class Analysis():
             
             fig.savefig(self.workingDir + 'all peaks %s.png' % variant, dpi=600)
             plt.close(fig)
+
+        return
+        
+    def analyzePerGeneCombinationVariant(self, variant, hcutoff = 0.2, fcutoff = 0.3, width = 50):
+
+        '''Find all peaks and their frequency from the bootstrap experiments
+
+        Parameters: 
+            variant: str
+                Name of combination variant (e.g. 'Avg combo4avgs', 'Avg combo3avgs')
+
+            nG: int, Default 8
+                Number of clusters of genes
+
+            nE: int, Default 30
+                Number of clusters of bootstrap experiments
+
+            fcutoff: float, Default 0.5
+                Lower peak height cutoff
+
+            width: int, Default 50
+                Width of peak 
+
+        Returns:
+            None 
+
+        Usage:
+            an = Analyze()
+            
+            an.analyzeAllPeaksOfCombinationVariant('Avg combo4avgs', nG=8, nE=30, fcutoff=0.5, width=50)
+        '''
+
+        print('Variant:', variant)
+        df = pd.read_hdf(self.dendroDataName, key='df').fillna(0).set_index('gene', append=True).droplevel('order')[variant]
+
+        df_temp = df.xs('species', level='species', axis=0).copy()
+        experiments = np.unique(df_temp.index.get_level_values('experiment'))
+        genes = np.unique(df_temp.index.get_level_values('gene'))
+
+        dfs = []
+        for gene in genes:
+            peaksLists = {}
+            for experiment in experiments:
+                se = df_temp.xs(experiment, level='experiment', axis=0)
+                se = se/se.max()
+
+                if gene in se.index:
+                    i0 = np.where(se.index==gene)[0][0]
+                    i1, i2 = max(0, i0-int(width/2)), min(i0+int(width/2), len(se))
+
+                    # e.g. w=50, then take 25 to the left of the gene, the gene itself, 24 to the right of the gene
+                    se_temp = se.iloc[i1: i2]
+                    se_temp = se_temp[se_temp >= hcutoff]
+                    peaksLists.update({experiment: se_temp.index.values})
+
+            df_peaks = pd.Series(peaksLists).apply(pd.Series)
+            se = df_peaks.stack().dropna().value_counts().sort_values(ascending=False)/len(experiments)
+            se = se.reindex(genes).fillna(0.)
+            se.name = gene
+
+            if se[gene] >= fcutoff:
+                print(gene, end=' ', flush=True)
+                dfs.append(se)
+
+        dfs = pd.concat(dfs, axis=1, sort=False)
+        print(dfs)
+        dfs.to_excel(self.workingDir + 'near frequency %s.xlsx' % variant)
 
         return
 
