@@ -2221,7 +2221,7 @@ class Analysis():
 
         dfs = pd.concat(dfs, axis=1, sort=False)
         print(dfs)
-        dfs.to_excel(self.workingDir + 'near frequency %s.xlsx' % variant)
+        dfs.to_excel(self.workingDir + 'near frequency %s %s.xlsx' % (variant, hcutoff))
 
         return
 
