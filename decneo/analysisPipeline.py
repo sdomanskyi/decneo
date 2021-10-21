@@ -1820,7 +1820,7 @@ class Analysis():
             kwargs.setdefault('toggleCalculateMeasures', True)
 
             kwargs.setdefault('externalPanelsData', externalPanelsData)
-            kwargs['externalPanelsData'].setdefault('conservedGenes', pd.read_excel(os.path.join(self.bootstrapDir, case, 'comparison.xlsx'), index_col=1, header=0)['Inter-measures.T50_common_count'])
+            kwargs['externalPanelsData'].update({'conservedGenes': pd.read_excel(os.path.join(self.bootstrapDir, case, 'comparison.xlsx'), index_col=1, header=0)['Inter-measures.T50_common_count']})
             
             self.analyzeCase(None, **kwargs)
 

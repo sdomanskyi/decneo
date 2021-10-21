@@ -1,4 +1,4 @@
-1.0.4-6 Miscellaneous updates
+1.0.4-7 Miscellaneous updates
 
 1.0.2-3 Customization of the processing pipeline
 
