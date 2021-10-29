@@ -49,7 +49,7 @@ This value is scaled from 0 to 1. The correlation of this average against the nu
 ``MakeBounds`` function group neighboring non-zero values in the heatmap. On default, the box containing the maximum value in the heatmap is only displayed.
 ``Avg3andUnique_Heatmap`` creates a heatmap via the average of RL pairs and scaled unique RL pairs. Scaled unique RL pairs is the number of unique RL pairs/maximum number of unique RL pairs in a specific RL cell type. Since both quantities are scaled from 0 to 1, then the average of these two values also range from 0 to 1. ``MakeNoNa_RLavg3`` makes any average less or equal to a specified threshold (0.5 by default) 0.
 5. ``DBSCAN_fig.py`` creates a similar heatmap with ``DBSCAN`` from ``sklearn``. Non-zero values are colored and grouped based on specific clusters. On default, the cluster containing the largest value in the heatmap is only shown.
-6. ``new_fig.py`` creates the combined figure seen in the paper. By default, the ligand dendrogram is on the y-axis and the receptor dendrogram is on the x-axis. Also, the bounds from the DBSCAN figure are drawn on this heatmap. This script also calls ``Avg3andUnique_Heatmap`` and ``MakeNoNa_RLavg3`` automatically.
+6. ``new_fig.py`` creates the combined figure seen in the paper. By default, the ligand dendrogram is on the y-axis and the receptor dendrogram is on the x-axis. Also, the bounds from the DBSCAN figure are drawn on this heatmap. This script also does the necessary operations from ``heatmap.py`` and ``DBSCAN_fig.py``.
 
 To generate a similar figure shown in the paper, the following should be run in order:
 1. ``otherCellTypes_v2.py``
