@@ -42,7 +42,7 @@ These scripts generate the 2d heatmaps of ligand-receptor Ramilowski pairs.
 
 1. Dendrograms of each cell type are created. This is done first on the Panglao samples with ``otherCellTypes_v2.py`` and then on the Choroid Samples with ``otherCellTypes_Choroid_v2.py``.
 2. Ramilowski (RL) pairs of ligand-receptors pairs for each cell type can be created. The output is an excel file containing a specific pair and its neighboring pairs in the dendrogram.
-3. ``make_sheet_rl.py`` finds the number of unique RL pairs in each of the neighboring pairs. A unique RL pair is defined as a neighboring RL pair that does not contain the ligand or receptor of the specific pair.
+3. ``make_sheet_from_all_pairs.py`` finds the number of unique RL pairs in each of the neighboring pairs. A unique RL pair is defined as a neighboring RL pair that does not contain the ligand or receptor of the specific pair.
 4. ``heatmap.py`` contains functions that create heatmap of a ligand-receptor RL pair. A heatmap of ligand dendrogram values against receptor dendrogram values can be seen with the function ``heatmap``.
 Another interesting function is ``heatmap_avg3sum`` which takes the average of the ligand dendrogram values and receptor dendrogram values (in the figure from the paper this is 'Avg Combination of measures'). 
 This value is scaled from 0 to 1. The correlation of this average against the number of unique RL pairs can be visualized with the function ``Unique_avg3sum_Corr``. There is also a mode to create a heatmap from products of RL pairs.
@@ -54,7 +54,7 @@ This value is scaled from 0 to 1. The correlation of this average against the nu
 To generate a similar figure shown in the paper, the following should be run in order:
 1. ``otherCellTypes_v2.py``
 2. ``otherCellTypes_Choroid_v2.py``
-3. ``make_sheet_rl.py``
+3. ``make_sheet_from_all_pairs.py``
 4. ``new_fig.py``
 
 
