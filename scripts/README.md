@@ -17,7 +17,7 @@ This directory contains scripts that use DECNEO.
 We have made an example execution file ```demo.py``` that shows how to use DECNEO.
 
 Download file ``VoightChoroid4567RemappedData.h5`` (456.7 Mb) 
-from https://figshare.com/DECNEO/
+from https://figshare.com/projects/DECNEO/92075
 
 > Processed by ``processRemappedChoroid.py``, this file contains normalized gene expression of 
 > 27504 genes of 7996 endothelial cells from 8 batches, and 5704 non-endothelial cells from 8 batches. 
